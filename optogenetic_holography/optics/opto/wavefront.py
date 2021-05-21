@@ -31,7 +31,7 @@ class Wavefront:
 
     @amplitude.setter
     def amplitude(self, new_amplitude):
-        self.u = torch.polar(new_amplitude, self.phase.double())
+        self.u = torch.polar(new_amplitude.float(), self.phase.float())
 
     @property
     def phase(self):
@@ -51,7 +51,7 @@ class Wavefront:
 
     @property
     def total_intensity(self):
-        return float(Wavefront.to_numpy(self.intensity.sum()))
+        return Wavefront.to_numpy(torch.sum(torch.square(self.amplitude)))
 
     def replace_phase(self, target_amplitude):
         self.u = torch.polar(target_amplitude, self.phase)
