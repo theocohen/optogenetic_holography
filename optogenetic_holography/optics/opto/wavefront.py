@@ -1,3 +1,5 @@
+import copy
+
 import cv2
 import torch
 import matplotlib.pyplot as plt
@@ -8,16 +10,19 @@ plt.style.use('dark_background')
 
 class Wavefront:
     def __init__(self, wavelength, pixel_pitch, resolution):
-        self.u = torch.ones(resolution, dtype=torch.complex128)
+        self.u = torch.ones((1,1,) + resolution, dtype=torch.complex128)
         self.resolution = resolution
         self.wavelength = wavelength
         self.pixel_pitch = pixel_pitch
 
     @classmethod
-    def from_image(cls, path, wavelength, pixel_pitch, scale_intensity=1):
+    def from_image(cls, path, wavelength, pixel_pitch, intensity=True, scale_intensity=1):
         img = cv2.imread(path, 0)
         wf = Wavefront(wavelength, pixel_pitch, img.shape)
-        wf.u = torch.tensor(img / img.max() * scale_intensity, dtype=torch.complex128)
+        if intensity:
+            wf.intensity = torch.tensor(img / img.max() * scale_intensity)
+        else:
+            wf.phase = torch.tensor(img)
         return wf
 
     @property
@@ -38,29 +43,41 @@ class Wavefront:
 
     @property
     def intensity(self):
-        i = torch.square(self.amplitude)
-        return i
+        return Wavefront.to_numpy(torch.square(self.amplitude))
+
+    @intensity.setter
+    def intensity(self, new_intensity):
+        self.amplitude = torch.sqrt(new_intensity)
 
     @property
     def total_intensity(self):
-        return float(self._numpy(self.intensity.sum()))
+        return float(Wavefront.to_numpy(self.intensity.sum()))
 
     def replace_phase(self, target_amplitude):
         self.u = torch.polar(target_amplitude, self.phase)
 
-    def _numpy(self, tt):
-        return tt.cpu().detach().numpy()
+    @classmethod
+    def to_numpy(cls, tt):
+        return tt.squeeze().cpu().detach().numpy()
 
     def assert_equal(self, other_field):
         return torch.allclose(self.u, other_field.u)
 
     def plot(self, fig_options=None, **kwargs):
-        options = kwargs['intensity']
-        i = self.intensity / self.intensity.max() if options['normalize'] else self.intensity
-        plt.imshow(i, cmap='gray')
+        if 'intensity' in kwargs:
+            options = kwargs['intensity']
+            img = self.intensity / self.intensity.max() if options['normalize'] else self.intensity
+        elif 'phase' in kwargs:
+            img = Wavefront.to_numpy(self.phase)
+            options = kwargs['phase']
+
+        plt.imshow(img, cmap='gray')
         plt.xticks([]), plt.yticks([])
+        if options['save']: plt.savefig(options['path'] + options['title'] + '.jpg', bbox_inches="tight", pad_inches = 0)
         plt.colorbar()
         plt.title(options['title'])
-        if options['save']: plt.savefig(options['path'] + options['title'] + '.jpg')
         plt.show()
         plt.close()
+
+    def copy(self, copy_wf=False):
+        return copy.deepcopy(self) if copy_wf else Wavefront(self.wavelength, self.pixel_pitch, self.resolution)

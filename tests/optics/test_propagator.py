@@ -7,7 +7,6 @@ import unittest
 output_path = "./../output/"
 input_path = "./../input/"
 
-resolution = (1080, 1920)
 z = 10 * opt.cm
 wavelength = 488 * opt.nm
 pixel_pitch = (10 * opt.um, 10 * opt.um)
@@ -37,9 +36,9 @@ class TestFourierPropagator(unittest.TestCase):
 class TestFresnelPropagator(unittest.TestCase):
 
     def test_forward_backward(self):
-        propagator = opt.FresnelPropagator()
-        wf_f = propagator.forward(wf, z)
-        wf_b = propagator.backward(wf_f, z)
+        propagator = opt.FresnelPropagator(z)
+        wf_f = propagator.forward(wf)
+        wf_b = propagator.backward(wf_f)
 
         wf.plot(intensity=defaultdict(str, title="start_field"))
         wf_f.plot(intensity=defaultdict(str, title="fresnel_propagated"))

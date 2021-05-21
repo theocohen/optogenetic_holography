@@ -5,9 +5,9 @@ from abc import ABC, abstractmethod
 class Propagator(ABC):
 
     @abstractmethod
-    def forward(self, wf, z):
+    def forward(self, wf):
         pass
 
     @abstractmethod
-    def backward(self, wf, z):
+    def backward(self, wf):
         pass

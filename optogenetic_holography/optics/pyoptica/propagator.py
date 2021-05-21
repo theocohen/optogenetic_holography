@@ -29,18 +29,21 @@ class FourierLensPropagator(Propagator):
 
 
 class FresnelPropagator(Propagator):
-    def __init__(self):
+    def __init__(self, z):
         self.kernels = {}
+        self.kernels[z] = po.FreeSpace(z)
+        self.kernels[-z] = po.FreeSpace(-z)
+        self.z = z
 
-    def forward(self, wf: Wavefront, z) -> Wavefront:
-        if z not in self.kernels:
-            self.kernels[z] = po.FreeSpace(z)
+    def forward(self, wf: Wavefront) -> Wavefront:
         propagated_wf = wf.copy()
-        propagated_wf.wf = self.kernels[z] * wf.wf
+        propagated_wf.wf = self.kernels[self.z] * wf.wf
         return propagated_wf
 
-    def backward(self, wf: Wavefront, z) -> Wavefront:
-        return self.forward(wf, -z)
+    def backward(self, wf: Wavefront) -> Wavefront:
+        propagated_wf = wf.copy()
+        propagated_wf.wf = self.kernels[-self.z] * wf.wf
+        return propagated_wf
 
 
 class RandomPhaseMask(Propagator):

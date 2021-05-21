@@ -1,3 +1,5 @@
+import copy
+
 import cv2
 import pyoptica as po
 import matplotlib.pyplot as plt
@@ -11,10 +13,13 @@ class Wavefront():
         self.wf = po.Wavefront(wavelength, pixel_pitch[0], resolution[0])
 
     @classmethod
-    def from_image(cls, path, wavelength, pixel_pitch, scale_intensity=1):
+    def from_image(cls, path, wavelength, pixel_pitch, intensity=True, scale_intensity=1):
         img = cv2.imread(path, 0)
         wf = Wavefront(wavelength, pixel_pitch, img.shape)
-        wf.amplitude = img / img.max() * scale_intensity
+        if intensity:
+            wf.intensity = img / img.max() * scale_intensity
+        else:
+            wf.phase = img
         return wf
 
     @property
@@ -49,6 +54,10 @@ class Wavefront():
     def intensity(self):
         return self.wf.intensity
 
+    @intensity.setter
+    def intensity(self, new_intensity):
+        self.wf.intensity = new_intensity
+
     @property
     def total_intensity(self):
         return self.intensity.sum()
@@ -63,5 +72,5 @@ class Wavefront():
         self.wf.plot(fig_options=fig_options, **kwargs)
         plt.show()
 
-    def copy(self):
-        return Wavefront(self.wavelength, self.pixel_pitch, self.resolution)
+    def copy(self, copy_wf=False):
+        return copy.deepcopy(self) if copy_wf else Wavefront(self.wavelength, self.pixel_pitch, self.resolution)

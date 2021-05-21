@@ -30,24 +30,25 @@ class FourierLensPropagator(Propagator):
     def __init__(self, radius, focal_length):
         pass
 
-    def forward(self, wf):
-        propagated_wf = Wavefront(wf.wavelength, wf.pixel_pitch, wf.resolution)
+    def forward(self, wf) -> Wavefront:
+        propagated_wf = wf.copy()
         propagated_wf.u = fftshift(fft2(wf.u, norm="ortho"))
         return propagated_wf
 
-    def backward(self, wf):
-        propagated_wf = Wavefront(wf.wavelength, wf.pixel_pitch, wf.resolution)
+    def backward(self, wf) -> Wavefront:
+        propagated_wf = wf.copy()
         propagated_wf.u = ifft2(ifftshift(wf.u), norm="ortho")
         return propagated_wf
 
 class FresnelPropagator(Propagator):
-    def __init__(self):
+
+    def __init__(self, z):
+        self.z = z
         self.precomputed_H_exp = None  # assuming fixed wavelength, resolution and pixel_pitch
         self.precomputed_H = {}
 
-    def forward(self, wf, z) :
-        if z not in self.precomputed_H:
-
+    def forward(self, wf) -> Wavefront:
+        if self.z not in self.precomputed_H:
             if self.precomputed_H_exp is None:
                 k = 2 * np.pi / wf.wavelength
 
@@ -61,32 +62,28 @@ class FresnelPropagator(Propagator):
                 f_y = torch.arange(-ny / 2 + 1, ny / 2 + 1, 1, dtype=torch.float64) * delta_y
                 f_y, f_x = torch.meshgrid(f_x, f_y)
 
-                H_exp = k - np.pi * wf.wavelength * (f_x ** 2 + f_y ** 2)
-                self.precomputed_H_exp = H_exp
+                self.precomputed_H_exp = k - np.pi * wf.wavelength * (f_x ** 2 + f_y ** 2)
 
-            else:
-                H_exp = self.precomputed_H_exp
+            self.precomputed_H[self.z] = torch.exp(1j * self.precomputed_H_exp * self.z)
 
-            H = torch.exp(1j * H_exp * z)
-            self.precomputed_H[z] = H_exp
-        else:
-            H = self.precomputed_H[z]
-
-        propagated_wf = Wavefront(wf.wavelength, wf.pixel_pitch, wf.resolution)
+        propagated_wf = wf.copy()
         G = fftshift(fft2(wf.u, norm='ortho'))
-        propagated_wf.u = ifft2(ifftshift(G * H), norm='ortho')
+        propagated_wf.u = ifft2(ifftshift(G * self.precomputed_H[self.z]), norm='ortho')
         return propagated_wf
 
-    def backward(self, field, z):
-        return self.forward(field, -z)
+    def backward(self, wf) -> Wavefront:
+        propagated_wf = wf.copy()
+        G = fftshift(fft2(wf.u, norm='ortho'))
+        propagated_wf.u = ifft2(ifftshift(G / self.precomputed_H[self.z]), norm='ortho')  # inverse kernel
+        return propagated_wf
 
 class RandomPhaseMask(Propagator):
 
-    def forward(self, wf):
-        masked_wf = Wavefront(wf.wavelength, wf.pixel_pitch, wf.resolution)
+    def forward(self, wf) -> Wavefront:
+        masked_wf = wf.copy()
         masked_wf.amplitude = wf.amplitude
         masked_wf.phase = np.pi * (1 - 2 * torch.rand(wf.resolution))  # between -pi to pi
         return masked_wf
 
-    def backward(self, wf):
+    def backward(self, wf) -> Wavefront:
         pass
