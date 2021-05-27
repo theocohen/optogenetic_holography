@@ -22,6 +22,7 @@ radius = 6 * opt.mm
 focal_length = 20 * opt.cm
 max_iter = 5000
 lr = 0.1
+scale_loss = False
 
 start_wf = opt.Wavefront(wavelength, pixel_pitch, resolution=resolution)
 start_wf = opt.RandomPhaseMask().forward(start_wf)
@@ -40,7 +41,7 @@ class TestGercherbergSaxton(unittest.TestCase):
 
         #wf_target.plot(intensity=defaultdict(str, title="target_img"))
 
-        holo_wf = phase_gercherberg_saxton_2D(start_wf, target_wf.amplitude, propagator, writer, max_iter=max_iter)
+        holo_wf = phase_gercherberg_saxton_2D(start_wf, target_wf.amplitude, propagator, writer, max_iter=max_iter, scale_loss=scale_loss)
         holo_wf.plot(phase=defaultdict(str, title=experiment+"__holo", path=output_path, save=True))
 
         recon_amp = propagator.forward(holo_wf)
@@ -54,7 +55,7 @@ class TestGercherbergSaxton(unittest.TestCase):
 
         #wf_target.plot(intensity=defaultdict(str, title="target_img"))
 
-        holo_wf = bin_amp_gercherberg_saxton_2D(start_wf, target_wf.amplitude, propagator, writer, max_iter=max_iter)
+        holo_wf = bin_amp_gercherberg_saxton_2D(start_wf, target_wf.amplitude, propagator, writer, max_iter=max_iter, scale_loss=scale_loss)
         holo_wf.plot(intensity=defaultdict(str, title=experiment+"__holo", path=output_path, save=True))
 
         recon_amp = propagator.forward(holo_wf)
@@ -70,7 +71,7 @@ class TestGercherbergSaxton(unittest.TestCase):
 
         #wf_target.plot(intensity=defaultdict(str, title="target_img"))
 
-        holo_wf = phase_sgd_2D(start_wf, target_wf.amplitude, propagator, loss_fn, writer, max_iter=max_iter, lr=lr)
+        holo_wf = phase_sgd_2D(start_wf, target_wf.amplitude, propagator, loss_fn, writer, max_iter=max_iter, lr=lr, scale_loss=scale_loss)
         holo_wf.plot(phase=defaultdict(str, title=experiment + "__holo", path=output_path, save=True))
 
         recon_amp = propagator.forward(holo_wf)
@@ -86,7 +87,7 @@ class TestGercherbergSaxton(unittest.TestCase):
 
         #wf_target.plot(intensity=defaultdict(str, title="target_img"))
 
-        holo_wf = bin_amp_sgd_2D(start_wf, target_wf.amplitude, propagator, loss_fn, writer, max_iter=max_iter, lr=lr)
+        holo_wf = bin_amp_sgd_2D(start_wf, target_wf.amplitude, propagator, loss_fn, writer, max_iter=max_iter, lr=lr, scale_loss=scale_loss)
         holo_wf.plot(intensity=defaultdict(str, title=experiment + "__holo", path=output_path, save=True))
 
         recon_amp = propagator.forward(holo_wf)
