@@ -21,17 +21,21 @@ def init_writer(output_path, experiment):
     return SummaryWriter(summaries_dir)
 
 
-def write_summary(writer, holo, recon_wf, target_amp, iter):
+def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None):
     """todo ROI"""
 
-    recon_amp = recon_wf.amplitude
+    recon_amp = recon_wf.amplitude.detach()
     # scaling from neural-holo (legit?)
-    recon_amp *= torch.sum(recon_amp * target_amp) / recon_wf.total_intensity
+    #recon_amp *= torch.sum(recon_amp * target_amp) / recon_wf.total_intensity
     recon_amp /= recon_amp.max()
 
     writer.add_image(f'Reconstructed intensity', opt.Wavefront.to_numpy(recon_amp ** 2), iter, dataformats='HW')
     writer.add_image(f'Hologram pattern', opt.Wavefront.to_numpy(holo), iter, dataformats='HW')
 
-    writer.add_scalar(f'mse', mse_loss(recon_amp, target_amp), iter)
+    writer.add_scalar(f'Loss', loss if loss is not None else mse_loss(recon_amp, target_amp), iter)
     writer.add_scalar(f'ssim', ssim(recon_amp, target_amp), iter)
     writer.add_scalar(f'psnr', psnr(recon_amp, target_amp), iter)
+
+    if lr:
+        writer.add_scalar(f'lr', lr, iter)
+

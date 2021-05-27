@@ -39,7 +39,11 @@ class Wavefront:
 
     @phase.setter
     def phase(self, new_phase):
-        self.u = torch.polar(self.amplitude.float(), new_phase)
+        self.u = torch.polar(self.amplitude.float(), new_phase.float())
+
+    def polar_to_rect(self, amp, phase):
+        """from neural holo"""
+        self.u = torch.complex(amp * torch.cos(phase), amp * torch.sin(phase))
 
     @property
     def intensity(self):
@@ -81,3 +85,6 @@ class Wavefront:
 
     def copy(self, copy_wf=False):
         return copy.deepcopy(self) if copy_wf else Wavefront(self.wavelength, self.pixel_pitch, self.resolution)
+
+    def requires_grad(self):
+        self.u.requires_grad_(True)

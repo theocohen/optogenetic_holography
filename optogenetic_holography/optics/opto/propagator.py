@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from torch.fft import fft2, fftshift, ifft2, ifftshift
 
 from optogenetic_holography.optics.propagator import Propagator
 from optogenetic_holography.optics.opto.wavefront import Wavefront
@@ -32,12 +31,12 @@ class FourierLensPropagator(Propagator):
 
     def forward(self, wf) -> Wavefront:
         propagated_wf = wf.copy()
-        propagated_wf.u = fftshift(fft2(wf.u, norm="ortho"))
+        propagated_wf.u = torch.fft.fftshift(torch.fft.fft2(wf.u, norm="ortho"))
         return propagated_wf
 
     def backward(self, wf) -> Wavefront:
         propagated_wf = wf.copy()
-        propagated_wf.u = ifft2(ifftshift(wf.u), norm="ortho")
+        propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(wf.u), norm="ortho")
         return propagated_wf
 
 class FresnelPropagator(Propagator):
@@ -67,14 +66,14 @@ class FresnelPropagator(Propagator):
             self.precomputed_H[self.z] = torch.exp(1j * self.precomputed_H_exp * self.z)
 
         propagated_wf = wf.copy()
-        G = fftshift(fft2(wf.u, norm='ortho'))
-        propagated_wf.u = ifft2(ifftshift(G * self.precomputed_H[self.z]), norm='ortho')
+        G = torch.fft.fftshift(torch.fft.fft2(wf.u, norm='ortho'))
+        propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(G * self.precomputed_H[self.z]), norm='ortho')
         return propagated_wf
 
     def backward(self, wf) -> Wavefront:
         propagated_wf = wf.copy()
-        G = fftshift(fft2(wf.u, norm='ortho'))
-        propagated_wf.u = ifft2(ifftshift(G / self.precomputed_H[self.z]), norm='ortho')  # inverse kernel
+        G = torch.fft.fftshift(torch.fft.fft2(wf.u, norm='ortho'))
+        propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(G / self.precomputed_H[self.z]), norm='ortho')  # inverse kernel
         return propagated_wf
 
 class RandomPhaseMask(Propagator):

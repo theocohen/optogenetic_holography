@@ -18,14 +18,14 @@ input_path = "../input/"
 
 cm, mm, um, nm = 1e-2, 1e-3, 1e-6, 1e-9
 
-img_name = "hexagon"
+img_name = "square"
 wavelength = 488
-npix = 225
+npix = 400
 pixel_scale = 4
 f = 20
 w = 80
 h = 80
-z = 10
+z = 0
 r = 6
 
 
@@ -53,8 +53,8 @@ class TestAllPropagator(unittest.TestCase):
 
         square_field = opt.Wavefront.from_image(input_path + img_name + '.jpg', wavelength, pixel_scale)
 
-        free_space = opt.FresnelPropagator()
-        f_end = free_space.forward(square_field, z)
+        free_space = opt.FresnelPropagator(z)
+        f_end = free_space.forward(square_field)
 
         f_end.plot(intensity=defaultdict(str, title="OPTO"))
 
@@ -141,8 +141,8 @@ class TestLens(unittest.TestCase):
         lens = opt.FourierLensPropagator(0,0)
         f_focal = lens.forward(square_field)
 
-        free_space = opt.FresnelPropagator()
-        f_end = free_space.forward(f_focal, z)
+        free_space = opt.FresnelPropagator(z)
+        f_end = free_space.forward(f_focal)
 
         f_end.plot(intensity=defaultdict(str, title="OPTO"))
 
@@ -179,7 +179,7 @@ class TestLens(unittest.TestCase):
 
         wf_f3 = wf_f2 * fs_small
 
-        wf.plot(intensity=dict(title='PYOPTICA -  2f system', cmap='gray'))
+        wf_f3.plot(intensity=dict(title='PYOPTICA -  2f system', cmap='gray'))
         #wf_bis.plot(intensity=dict(title='PYOPTICA -  2f system', cmap='gray'))
         plt.show()
 
@@ -207,7 +207,7 @@ class TestLens(unittest.TestCase):
         F.propagate(z)
 
         rgb = F.get_colors()
-        F.plot(rgb, xlim=[-5, 5], ylim=[-5, 5])
+        F.plot(rgb, xlim=[-3, 3], ylim=[-3, 3])
 
         return rgb
 
