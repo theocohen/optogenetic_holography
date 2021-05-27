@@ -15,7 +15,7 @@ def phase_gercherberg_saxton_2D(start_wf: opt.Wavefront, target_amplitude: opt.W
 
         if not iter % 100:
             logging.info("GS iteration {}/{}".format(iter, max_iter))
-            write_summary(writer, holo_wf.phase, recon_wf, target_amplitude, iter)
+            write_summary(writer, holo_wf.phase, recon_wf, target_amplitude, iter, prefix='phase')
 
         recon_wf.amplitude = target_amplitude
         holo_wf = propagator.backward(recon_wf)
@@ -32,7 +32,7 @@ def bin_amp_gercherberg_saxton_2D(start_wf: opt.Wavefront, target_amplitude: opt
 
         if not iter % 100:
             logging.info("GS iteration {}/{}".format(iter, max_iter))
-            write_summary(writer, holo_wf.amplitude, recon_wf, target_amplitude, iter)
+            write_summary(writer, holo_wf.amplitude, recon_wf, target_amplitude, iter, prefix='bin_amp')
 
         recon_wf.amplitude = target_amplitude
         holo_wf.amplitude = (propagator.backward(recon_wf).phase > 0).float()  # binary amplitude modulation
@@ -63,7 +63,7 @@ def phase_sgd_2D(start_wf, target_amplitude, propagator, loss_fn, writer, max_it
         if not iter % 100:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{max_iter}. Loss {loss}, lr {lr}")
-            write_summary(writer, holo_wf.phase, recon_wf, target_amplitude, iter, loss=loss ,lr=lr)
+            write_summary(writer, holo_wf.phase, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='phase')
 
     return holo_wf
 
@@ -91,7 +91,7 @@ def bin_amp_sgd_2D(start_wf, target_amplitude, propagator, loss_fn, writer, max_
         if not iter % 100:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{max_iter}. Loss {loss}, lr {lr}")
-            write_summary(writer, holo_wf.amplitude, recon_wf, target_amplitude, iter, loss=loss, lr=lr)
+            write_summary(writer, holo_wf.amplitude, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='bin_amp')
 
     return holo_wf
 
