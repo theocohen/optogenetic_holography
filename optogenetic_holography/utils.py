@@ -21,7 +21,7 @@ def init_writer(output_path, experiment):
     return SummaryWriter(summaries_dir)
 
 
-def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='test', scale_loss=False):
+def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='', scale_loss=False):
     """todo ROI"""
 
     recon_amp = recon_wf.amplitude.detach()
