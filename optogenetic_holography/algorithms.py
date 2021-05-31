@@ -41,7 +41,12 @@ def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, pr
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, modulation="amp")
 
         recon_wf.amplitude = target_amplitude
-        holo_wf.polar_to_rect(bin_amp_modulation(propagator.backward(recon_wf)), start_wf.phase)
+        holo_wf.amplitude = propagator.backward(recon_wf).amplitude
+
+    holo_wf.amplitude = bin_amp_modulation(holo_wf, method="amplitude")
+
+    recon_wf = propagator.forward(holo_wf)
+    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, modulation="both")
 
     return holo_wf
 
