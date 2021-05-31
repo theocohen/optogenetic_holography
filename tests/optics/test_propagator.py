@@ -1,3 +1,5 @@
+import torch
+import numpy as np
 from optogenetic_holography.optics import optics_backend as opt
 import logging
 
@@ -14,7 +16,7 @@ radius = 6 * opt.mm
 focal_length = 20 * opt.cm
 
 img_name = "hexagon.jpg"
-wf = opt.Wavefront.from_image(input_path + img_name, wavelength, pixel_pitch)
+wf = opt.Wavefront.from_images(input_path + img_name, wavelength, pixel_pitch)
 #random_phase_mask = opt.RandomPhaseMask()
 #wf = random_phase_mask.forward(wf)
 
@@ -46,3 +48,33 @@ class TestFresnelPropagator(unittest.TestCase):
 
         self.assertAlmostEqual(wf.total_intensity, wf_f.total_intensity, delta=1e-1)  # fixme failling with random phase
         self.assertTrue(wf.assert_equal(wf_b))
+
+    def test_forward_3D(self):
+        image_folder = "digits/*.jpg"
+        z_stack = z + torch.arange(-5, 5, 1) * opt.mm
+        wf = opt.Wavefront.from_images(input_path + image_folder, wavelength, pixel_pitch)
+
+        propagator = opt.FresnelPropagator(z_stack)
+        wf_f = propagator.forward(wf)
+        wf_b = propagator.backward(wf_f)
+
+        wf.plot(intensity=defaultdict(str, save=True, path=output_path+"digits/", title="start_field"))
+        wf_f.plot(intensity=defaultdict(str, save=True, path=output_path+"digits/", title="fresnel_propagated"))
+        wf_b.plot(intensity=defaultdict(str, save=True, path=output_path+"digits/", title="fresnel_back_propagated"))
+
+        np.testing.assert_array_almost_equal(wf.total_intensity, wf_f.total_intensity, decimal=1)  # fixme failling with random phase
+        self.assertTrue(wf.assert_equal(wf_b))
+
+    def test_forward_multi_plane(self):
+        z_stack = z + torch.arange(-5, 5, 1) * opt.mm
+
+        propagator = opt.FresnelPropagator(z_stack)
+        wf_f = propagator.forward(wf)
+        wf_b = propagator.backward(wf_f)
+
+        #wf.plot(intensity=defaultdict(str, save=True, path=output_path+"digits/", title="start_field"))
+        wf_f.plot(intensity=defaultdict(str, save=True, path=output_path+"multiplane/", title="prop_plane_"))
+        wf_b.plot(intensity=defaultdict(str, save=True, path=output_path+"multiplane/", title="back_prop"))
+
+        #np.testing.assert_array_almost_equal(wf.total_intensity, wf_f.total_intensity, decimal=1)  # fixme failling with random phase
+        #self.assertTrue(wf.assert_equal(wf_b))

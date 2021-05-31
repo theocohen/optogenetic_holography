@@ -51,7 +51,7 @@ class TestAllPropagator(unittest.TestCase):
         pixel_scale = (pixel_scale * um, pixel_scale * um)
         z = z * cm
 
-        square_field = opt.Wavefront.from_image(input_path + img_name + '.jpg', wavelength, pixel_scale)
+        square_field = opt.Wavefront.from_images(input_path + img_name + '.jpg', wavelength, pixel_scale)
 
         free_space = opt.FresnelPropagator(z)
         f_end = free_space.forward(square_field)
@@ -130,13 +130,12 @@ class TestLens(unittest.TestCase):
         wf_difs = self.propagate_difs(img_name, wavelength, npix, pixel_scale, w, h, f, r, z)
         wf_opto = self.propagate_opto(img_name, wavelength, pixel_scale, z)
 
-
     def propagate_opto(self, img_name, wavelength, pixel_scale, z):
         wavelength = wavelength * nm
         pixel_scale = (pixel_scale * um, pixel_scale * um)
         z = z * cm
 
-        square_field = opt.Wavefront.from_image(input_path + img_name + '.jpg', wavelength, pixel_scale)
+        square_field = opt.Wavefront.from_images(input_path + img_name + '.jpg', wavelength, pixel_scale)
 
         lens = opt.FourierLensPropagator(0,0)
         f_focal = lens.forward(square_field)

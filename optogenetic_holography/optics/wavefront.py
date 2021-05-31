@@ -1,3 +1,5 @@
+"""deprecated"""
+
 from abc import ABC, abstractmethod
 
 
@@ -44,8 +46,4 @@ class WavefrontInterface(ABC):
     @property
     @abstractmethod
     def total_intensity(self):
-        pass
-
-    @abstractmethod
-    def replace_amplitude(self, target_amplitude):
         pass
