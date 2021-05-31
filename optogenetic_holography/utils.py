@@ -30,9 +30,9 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, 
 
     writer.add_image(f'{prefix}/Reconstructed intensity', recon_wf.intensity[0], iter, dataformats='HW')
 
-    if modulation == "both" or holo == "amp":
+    if modulation == "both" or modulation == "amp":
         writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[0], iter, dataformats='HW')
-    if modulation == "both" or holo == "phase":
+    if modulation == "both" or modulation == "phase":
         writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[0], iter, dataformats='HW')
 
     loss = loss if loss is not None else (mse_loss(recon_wf.scaled_amplitude.detach(), target_amp) if scale_loss else mse_loss(recon_wf.amplitude.detach(), target_amp))

@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 
 import torch
 from torch import optim
@@ -7,7 +8,7 @@ from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import write_summary
 
 
-def phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, writer, max_iter=1000, scale_loss=False) -> opt.Wavefront:
+def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, bin_amp_modulation, writer, max_iter=1000, scale_loss=False) -> opt.Wavefront:
     """Technically not the original Gercherberg-Saxton algorithm as not restricted to Fourier propagation"""
     holo_wf = start_wf.copy(copy_wf=True)
 
@@ -16,15 +17,20 @@ def phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagat
 
         if not iter % 100:
             logging.info("GS iteration {}/{}".format(iter, max_iter))
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, modulation="phase")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, modulation="both")
 
         recon_wf.amplitude = target_amplitude
         holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=0)
 
+    #binarization
+    holo_wf.polar_to_rect(bin_amp_modulation(holo_wf), start_wf.phase)  # fixme
+    recon_wf = propagator.forward(holo_wf)
+    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, modulation="both")
+
     return holo_wf
 
 
-def bin_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, bin_amp_modulation, writer, max_iter=1000, scale_loss=False) -> opt.Wavefront:
+def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, bin_amp_modulation, writer, max_iter=1000, scale_loss=False) -> opt.Wavefront:
     holo_wf = start_wf.copy(copy_wf=True)
 
     for iter in range(max_iter):
@@ -32,7 +38,7 @@ def bin_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propag
 
         if not iter % 100:
             logging.info("GS iteration {}/{}".format(iter, max_iter))
-            write_summary(writer, holo_wf.amplitude, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss)
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, modulation="amp")
 
         recon_wf.amplitude = target_amplitude
         holo_wf.polar_to_rect(bin_amp_modulation(propagator.backward(recon_wf)), start_wf.phase)
@@ -96,8 +102,7 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_m
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', modulation="phase")
 
     with torch.no_grad():
-        #holo_wf.amplitude = bin_amp_modulation(holo_wf)  #fixme
-        holo_wf.polar_to_rect(bin_amp_modulation(holo_wf), start_wf.phase)
+        holo_wf.polar_to_rect(bin_amp_modulation(holo_wf), start_wf.phase)  # fixme
 
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude
@@ -135,7 +140,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_mod
 
     with torch.no_grad():
         #holo_wf.amplitude = bin_amp_modulation(holo_wf, method="amplitude")
-        holo_wf.polar_to_rect(bin_amp_modulation(holo_wf, method="none"), start_wf.phase)
+        holo_wf.polar_to_rect(bin_amp_modulation(holo_wf, method="none"), start_wf.phase)  # fixme phase change. why?
 
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude

@@ -5,7 +5,7 @@ import logging
 import torch
 from torch import nn
 
-from optogenetic_holography.algorithms import phase_gercherberg_saxton, bin_amp_gercherberg_saxton, phase_sgd, \
+from optogenetic_holography.algorithms import bin_amp_phase_gercherberg_saxton, bin_amp_amp_gercherberg_saxton, phase_sgd, \
     bin_amp_phase_sgd, bin_amp_phase_sgd, bin_amp_amp_sgd
 from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import init_writer
@@ -22,7 +22,7 @@ pixel_pitch = (10 * opt.um, 10 * opt.um)
 #radius = 6 * opt.mm
 #focal_length = 20 * opt.cm
 
-max_iter = 5000
+max_iter = 1000
 lr = 0.1
 scale_loss = False
 loss_fn = nn.MSELoss()
@@ -54,12 +54,12 @@ def bin_amp_modulation(holo_wf, method="phase"):
 
 class TestGercherbergSaxton(unittest.TestCase):
 
-    def test_phase_gercherberg_saxton(self):
-        experiment = "phase_GS_3D" if MULTIPLANE else "phase_GS_2D"
+    def test_bin_amp_phase_gercherberg_saxton(self):
+        experiment = "bin_amp_phase_GS_3D" if MULTIPLANE else "bin_amp_phase_GS_2D"
 
         writer = init_writer(output_path, experiment)
 
-        holo_wf = phase_gercherberg_saxton(start_wf, target_wf.amplitude, propagator, writer, max_iter=max_iter, scale_loss=scale_loss)
+        holo_wf = bin_amp_phase_gercherberg_saxton(start_wf, target_wf.amplitude, propagator, bin_amp_modulation, writer, max_iter=max_iter, scale_loss=scale_loss)
         holo_wf.plot(phase=defaultdict(str, title=experiment+"__holo", path=output_path, save=True))
 
         recon_amp = propagator.forward(holo_wf)
@@ -67,11 +67,11 @@ class TestGercherbergSaxton(unittest.TestCase):
 
         writer.close()
 
-    def test_bin_amp_gercherberg_saxton(self):
-        experiment = "bin_amp_GS_3D" if MULTIPLANE else "bin_amp_GS_2D"
+    def test_bin_amp_amp_gercherberg_saxton(self):
+        experiment = "bin_amp_amp_GS_3D" if MULTIPLANE else "bin_amp_amp_GS_2D"
         writer = init_writer(output_path, experiment)
 
-        holo_wf = bin_amp_gercherberg_saxton(start_wf, target_wf.amplitude, propagator, bin_amp_modulation, writer, max_iter=max_iter, scale_loss=scale_loss)
+        holo_wf = bin_amp_amp_gercherberg_saxton(start_wf, target_wf.amplitude, propagator, bin_amp_modulation, writer, max_iter=max_iter, scale_loss=scale_loss)
         holo_wf.plot(intensity=defaultdict(str, title=experiment+"__holo", path=output_path, save=True))
 
         recon_amp = propagator.forward(holo_wf)
