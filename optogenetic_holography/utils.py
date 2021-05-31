@@ -21,6 +21,16 @@ def init_writer(output_path, experiment):
     return SummaryWriter(summaries_dir)
 
 
+def assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True):
+    if just_check_first:
+        phase_shift = (holo_wf.phase.flatten()[0] - start_wf.phase.flatten()[0])
+        assert phase_shift < 1e-9, f'index:{0}, diff:{phase_shift}, phase_holo:{holo_wf.phase.flatten()[0]}, phase_start:{start_wf.phase.flatten()[0]}, amp_optim:{amplitude.flatten()[0]}, amp_holo:{holo_wf.amplitude.flatten()[0]}. amp_start:{start_wf.amplitude.flatten()[0]}'
+    else:
+        phase_shift = (holo_wf.phase - start_wf.phase).flatten()
+        for i, d in enumerate(phase_shift):
+            assert phase_shift[i] < 1e-9, f'index:{i}, diff:{d}, phase_holo:{holo_wf.phase.flatten()[i]}, phase_start:{start_wf.phase.flatten()[i]}, amp_optim:{amplitude.flatten()[i]}, amp_holo:{holo_wf.amplitude.flatten()[i]}. amp_start:{start_wf.amplitude.flatten()[i]}'
+
+
 def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='', scale_loss=False, modulation="amp"):
     """todo ROI"""
 

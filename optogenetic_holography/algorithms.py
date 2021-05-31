@@ -5,7 +5,7 @@ import torch
 from torch import optim
 
 from optogenetic_holography.optics import optics_backend as opt
-from optogenetic_holography.utils import write_summary
+from optogenetic_holography.utils import write_summary, assert_phase_unchanged
 
 
 def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, bin_amp_modulation, writer, max_iter=1000, scale_loss=False) -> opt.Wavefront:
@@ -114,16 +114,21 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_m
 def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_modulation, writer, max_iter=1000, lr=0.1, scale_loss=False) -> opt.Wavefront:
     holo_wf = start_wf.copy(copy_wf=True)
 
-    amplitude = start_wf.amplitude.requires_grad_(True)
-    params = [{'params': amplitude}]
+    amplitude = start_wf.amplitude
+    log_amplitude = torch.log(amplitude).requires_grad_(True)
+
+    params = [{'params': log_amplitude}]
     optimizer = optim.Adam(params, lr=lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
     for iter in range(max_iter):
 
         optimizer.zero_grad()
-
+        amplitude = torch.exp(log_amplitude)
         holo_wf.polar_to_rect(amplitude, start_wf.phase)
+
+        assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True)
+
         recon_wf = propagator.forward(holo_wf)
 
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude
@@ -132,15 +137,13 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_mod
         optimizer.step()
         scheduler.step(loss)
 
-
         if not iter % 100:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{max_iter}. Loss {loss}, lr {lr}")
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', modulation="both")
 
     with torch.no_grad():
-        #holo_wf.amplitude = bin_amp_modulation(holo_wf, method="amplitude")
-        holo_wf.polar_to_rect(bin_amp_modulation(holo_wf, method="none"), start_wf.phase)  # fixme phase change. why?
+        holo_wf.amplitude = bin_amp_modulation(holo_wf, method="amplitude")
 
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude
