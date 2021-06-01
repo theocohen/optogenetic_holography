@@ -157,26 +157,28 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_mod
     return holo_wf
 
 
-"""
-def bin_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_modulation, writer, max_iter=1000, lr=0.1, scale_loss=False) -> opt.Wavefront:
-    # Binary Gradient
+def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_modulation, writer, max_iter=1000, lr=0.1, scale_loss=False, sharpness=1, threshold=None) -> opt.Wavefront:
     holo_wf = start_wf.copy(copy_wf=True)
 
-    phase = start_wf.phase.requires_grad_(True)
-    params = [{'params': phase}]
-    optimizer = optim.Adam(params, lr=1)
+    amplitude = start_wf.amplitude.requires_grad_(True)
+
+    params = [{'params': amplitude}]
+    optimizer = optim.Adam(params, lr=lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
     for iter in range(max_iter):
 
         optimizer.zero_grad()
 
-        #bin_amp_mod = phase.heaviside(torch.tensor([0.0]))
+        # approximation to heavyside step function
+        # todo learn optimal sharpness and threshold
+        threshold = threshold if threshold is not None else amplitude.mean()
+        bin_amp = 1 / (1 + torch.exp(- sharpness * (amplitude - threshold)))
 
-        bin_phase = phase.sign().detach().requires_grad_()
-        bin_amp_mod = (bin_phase + 1) / 2
+        holo_wf.polar_to_rect(bin_amp, start_wf.phase)
 
-        holo_wf.polar_to_rect(bin_amp_mod, start_wf.phase)
+        assert_phase_unchanged(bin_amp, holo_wf, start_wf, just_check_first=True)
+
         recon_wf = propagator.forward(holo_wf)
 
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude
@@ -188,10 +190,15 @@ def bin_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_modulat
         if not iter % 100:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{max_iter}. Loss {loss}, lr {lr}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='')
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='bin_amp')
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', modulation="both")
 
+    with torch.no_grad():
+        holo_wf.amplitude = bin_amp_modulation(holo_wf, method="amplitude")
+
+        recon_wf = propagator.forward(holo_wf)
+        recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude
+        loss = loss_fn(recon_amp.double(), target_amplitude.double())
+        write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, loss=loss, lr=lr, prefix='')
     return holo_wf
-"""
 
 

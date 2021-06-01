@@ -5,8 +5,9 @@ import logging
 import torch
 from torch import nn
 
-from optogenetic_holography.algorithms import bin_amp_phase_gercherberg_saxton, bin_amp_amp_gercherberg_saxton, phase_sgd, \
-    bin_amp_phase_sgd, bin_amp_phase_sgd, bin_amp_amp_sgd
+from optogenetic_holography.algorithms import bin_amp_phase_gercherberg_saxton, bin_amp_amp_gercherberg_saxton, \
+    phase_sgd, \
+    bin_amp_phase_sgd, bin_amp_phase_sgd, bin_amp_amp_sgd, bin_amp_amp_sig_sgd
 from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import init_writer
 
@@ -32,7 +33,7 @@ if MULTIPLANE: # 3D
     z = 10 * opt.cm + torch.arange(-5, 5, 1) * opt.mm
 else:
     # 2D
-    target_wf = opt.Wavefront.from_images(input_path + "hexagon.jpg", wavelength, pixel_pitch)
+    target_wf = opt.Wavefront.from_images(input_path + "bahtinov_mask.jpg", wavelength, pixel_pitch)
     z = 10 * opt.cm
 
 # wf_target.plot(intensity=defaultdict(str, title="target_img"))
@@ -111,6 +112,19 @@ class TestGercherbergSaxton(unittest.TestCase):
         writer = init_writer(output_path, experiment)
 
         holo_wf = bin_amp_amp_sgd(start_wf, target_wf.amplitude, propagator, loss_fn, bin_amp_modulation, writer, max_iter=max_iter, lr=lr, scale_loss=scale_loss)
+        holo_wf.plot(intensity=defaultdict(str, title=experiment + "__holo", path=output_path, save=True))
+
+        recon_amp = propagator.forward(holo_wf)
+        recon_amp.plot(intensity=defaultdict(str, title=experiment + "__recon", path=output_path, save=True, normalize=True))
+
+        writer.close()
+
+    def test_bin_amp_amp_sig_sgd(self):
+        experiment = "bin_amp_amp_sig_SGD_3D" if MULTIPLANE else "bin_amp_amp_sig_SGD_2D"
+
+        writer = init_writer(output_path, experiment)
+
+        holo_wf = bin_amp_amp_sig_sgd(start_wf, target_wf.amplitude, propagator, loss_fn, bin_amp_modulation, writer, max_iter=max_iter, lr=lr, scale_loss=scale_loss)
         holo_wf.plot(intensity=defaultdict(str, title=experiment + "__holo", path=output_path, save=True))
 
         recon_amp = propagator.forward(holo_wf)
