@@ -4,6 +4,7 @@ from collections import defaultdict
 import torch
 from torch import optim
 
+from optogenetic_holography.binarization import from_amp_to_bin_amp
 from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import write_summary, assert_phase_unchanged
 
@@ -30,7 +31,7 @@ def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, 
     return holo_wf
 
 
-def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, bin_amp_modulation, writer, max_iter=1000, scale_loss=False) -> opt.Wavefront:
+def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, writer, max_iter=1000, scale_loss=False, bin_amp_mode="otsu") -> opt.Wavefront:
     holo_wf = start_wf.copy(copy_wf=True)
 
     for iter in range(max_iter):
@@ -43,7 +44,7 @@ def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, pr
         recon_wf.amplitude = target_amplitude
         holo_wf.amplitude = propagator.backward(recon_wf).amplitude
 
-    holo_wf.amplitude = bin_amp_modulation(holo_wf, method="amplitude")
+    holo_wf.amplitude = from_amp_to_bin_amp(holo_wf, method=bin_amp_mode)
 
     recon_wf = propagator.forward(holo_wf)
     write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, modulation="both")
@@ -116,7 +117,7 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_m
     return holo_wf
 
 
-def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_modulation, writer, max_iter=1000, lr=0.1, scale_loss=False) -> opt.Wavefront:
+def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False, bin_amp_mode="otsu") -> opt.Wavefront:
     holo_wf = start_wf.copy(copy_wf=True)
 
     amplitude = start_wf.amplitude
@@ -148,7 +149,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, bin_amp_mod
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', modulation="both")
 
     with torch.no_grad():
-        holo_wf.amplitude = bin_amp_modulation(holo_wf, method="amplitude")
+        holo_wf.amplitude = from_amp_to_bin_amp(holo_wf, method=bin_amp_mode)
 
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude
