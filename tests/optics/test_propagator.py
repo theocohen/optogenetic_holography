@@ -37,6 +37,22 @@ class TestFourierPropagator(unittest.TestCase):
 
 class TestFresnelPropagator(unittest.TestCase):
 
+    def test_interference(self):
+        holo_wf = opt.Wavefront(wavelength, pixel_pitch, resolution=(2,2))
+        holo_wf.phase = torch.Tensor([[-np.pi/2, 0], [np.pi/2, np.pi]]).double()
+        holo_wf.plot(phase=defaultdict(str, title="holo"))
+
+        propagator = opt.FourierLensPropagator(0,0)
+        recon_wf = propagator.forward(holo_wf)
+        recon_wf.plot(intensity=defaultdict(str, title="recon"))
+
+        #holo_wf.amplitude = ((holo_wf.phase > - np.pi / 2) & (holo_wf.phase <= np.pi / 2)).double()
+        holo_wf.amplitude = (holo_wf.phase > 0).double()
+        holo_wf.plot(intensity=defaultdict(str, title="bin_holo"))
+        recon_wf = propagator.forward(holo_wf)
+        recon_wf.plot(intensity=defaultdict(str, title="bin_recon"))
+
+
     def test_forward_backward(self):
         propagator = opt.FresnelPropagator(z)
         wf_f = propagator.forward(wf)

@@ -9,6 +9,7 @@ from optogenetic_holography.optics import optics_backend as opt
 def from_phase_to_bin_amp(holo_wf):
     # fixme
     return (holo_wf.phase > 0).double()
+    #return ((holo_wf.phase > - np.pi/2) & (holo_wf.phase < np.pi/2)).double()
 
 
 def from_amp_to_bin_amp(holo_wf, method="mean"):

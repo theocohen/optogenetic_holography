@@ -5,23 +5,23 @@ from optogenetic_holography.optics.propagator import Propagator
 from optogenetic_holography.optics.opto.wavefront import Wavefront
 
 
-"""
+
 class FourierFresnelPropagator(Propagator):
     #Assumes propagates through lens, from a distance d=f to lens and to focal length from lens.
     #   Then, we use Fresnel propagation for the remaining short distance z
 
-    def __init__(self):
-        self.fourier_lens_propagator = FourierLensPropagator()
-        self.fresnel_propagator = FresnelPropagator()
+    def __init__(self, radius, focal_length, z):
+        self.fourier_lens_propagator = FourierLensPropagator(radius, focal_length)
+        self.fresnel_propagator = FresnelPropagator(z)
 
-    def forward(self, field, z):
+    def forward(self, wf):
         return self.fresnel_propagator.forward(
-               self.fourier_lens_propagator.forward(field), z)
+               self.fourier_lens_propagator.forward(wf))
 
-    def backward(self, field, z):
-        return self.fresnel_propagator.backward(
-               self.fourier_lens_propagator.backward(field), z)
-"""
+    def backward(self, wf):
+        return self.fourier_lens_propagator.backward(
+               self.fresnel_propagator.backward(wf))
+
 
 
 class FourierLensPropagator(Propagator):

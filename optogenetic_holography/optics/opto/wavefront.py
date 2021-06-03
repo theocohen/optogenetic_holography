@@ -20,14 +20,25 @@ class Wavefront:
         self.pixel_pitch = pixel_pitch
 
     @classmethod
-    def from_images(cls, path, wavelength, pixel_pitch, intensity=True, scale_intensity=1):
+    def from_images(cls, path, wavelength, pixel_pitch, intensity=True, scale_intensity=1, padding=10, optimize_resolution=True):
+        """assumes all image are of same shape"""
         images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(path))])
-        wf = Wavefront(wavelength, pixel_pitch, images.shape[1:], depth=images.shape[0])
+
+        resolution = images.shape[1:]
+        resolution = (resolution[0] + 2 * padding, resolution[1] + 2 * padding)
+        if optimize_resolution:
+            resolution = 2 ** np.ceil(np.log2(resolution))  # powers of 2 for optimized FFT
+            resolution = (int(resolution[0]), int(resolution[1]))
+        padded_images = np.zeros(images.shape[:1] + resolution, dtype=np.uint8)
+        origin = ((resolution[0] - images.shape[1]) // 2, (resolution[1] - images.shape[2]) // 2)
+        padded_images[:, origin[0]:origin[0] + images.shape[1], origin[1]:origin[1] + images.shape[2]] = images
+
+        wf = Wavefront(wavelength, pixel_pitch, resolution, depth=images.shape[0])
         if intensity:
-            wf.intensity = torch.tensor(images * scale_intensity).double()
+            wf.intensity = torch.tensor(padded_images * scale_intensity).double()
             wf.amplitude /= wf.amplitude.amax(dim=(1, 2, 3), keepdim=True)
         else:
-            wf.phase = torch.tensor(images)
+            wf.phase = torch.tensor(padded_images)
         return wf
 
     @property
@@ -59,6 +70,8 @@ class Wavefront:
 
     @phase.setter
     def phase(self, new_phase):
+        if len(new_phase.shape) < 4:
+            new_phase = new_phase.reshape(self.shape)
         self.u = torch.polar(self.amplitude, new_phase.reshape(self.shape))
 
     @property
@@ -87,7 +100,11 @@ class Wavefront:
     def plot(self, fig_options=None, **kwargs):
         if 'intensity' in kwargs:
             options = kwargs['intensity']
-            img = self.intensity / self.intensity.max() if options['normalize'] else self.intensity
+            img = self.intensity
+            if options['suppress_center']:
+                img[:, self.resolution[0] // 2, self.resolution[1] // 2] = 0
+            if options['normalize']:
+                img = self.intensity / self.intensity.max()
         elif 'phase' in kwargs:
             img = Wavefront.to_numpy(self.phase)
             options = kwargs['phase']

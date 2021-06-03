@@ -15,8 +15,9 @@ def cond_mkdir(path):
         os.makedirs(path)
 
 
-def init_writer(output_path, experiment):
-    summaries_dir = os.path.join(output_path + 'summaries/' + experiment + '/' + datetime.now().strftime("%Y.%m.%d-%H:%M:%S"))
+def init_writer(output_path, experiment, setup=None):
+    summaries_dir = output_path + 'summaries/' + experiment + '/'
+    summaries_dir += setup if setup is not None else datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
     cond_mkdir(summaries_dir)
     return SummaryWriter(summaries_dir)
 
@@ -31,7 +32,7 @@ def assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True):
             assert phase_shift[i] < 1e-9, f'index:{i}, diff:{d}, phase_holo:{holo_wf.phase.flatten()[i]}, phase_start:{start_wf.phase.flatten()[i]}, amp_optim:{amplitude.flatten()[i]}, amp_holo:{holo_wf.amplitude.flatten()[i]}. amp_start:{start_wf.amplitude.flatten()[i]}'
 
 
-def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='', scale_loss=False, modulation="amp"):
+def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='', scale_loss=False, show_holo="none"):
     """todo ROI"""
 
     # scaling from neural-holo (legit?)
@@ -40,9 +41,9 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, 
 
     writer.add_image(f'{prefix}/Reconstructed intensity', recon_wf.intensity[0], iter, dataformats='HW')
 
-    if modulation == "both" or modulation == "amp":
+    if show_holo == "both" or show_holo == "amp":
         writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[0], iter, dataformats='HW')
-    if modulation == "both" or modulation == "phase":
+    if show_holo == "both" or show_holo == "phase":
         writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[0], iter, dataformats='HW')
 
     loss = loss if loss is not None else (mse_loss(recon_wf.scaled_amplitude.detach(), target_amp) if scale_loss else mse_loss(recon_wf.amplitude.detach(), target_amp))
