@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from skimage import filters
-import mahotas
 
 from optogenetic_holography.optics import optics_backend as opt
 

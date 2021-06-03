@@ -19,22 +19,24 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 
 MULTIPLANE = True
 
-#wavelength = 488 * opt.nm
-wavelength = 1
-pixel_pitch = (1, 1)
-#pixel_pitch = (10 * opt.um, 10 * opt.um)
+wavelength = 488 * opt.nm
+#wavelength = 1
+#pixel_pitch = (1, 1)
+pixel_pitch = (10 * opt.um, 10 * opt.um)
 #radius = 6 * opt.mm
 #focal_length = 20 * opt.cm
 
-max_iter = 10
+max_iter = 4
 lr = 0.1
 scale_loss = False
 loss_fn = nn.MSELoss()
 
 if MULTIPLANE: # 3D
-    target_wf = opt.Wavefront.from_images(input_path + "digits/*.jpg", wavelength, pixel_pitch, optimize_resolution=False, padding=0)
-    #z = 10 * opt.cm + torch.arange(-5, 5, 1) * opt.cm
-    z = torch.arange(-5, 5, 1) * 300 / 5
+    #padding = [50, 700, 50, 700]
+    padding = 0
+    target_wf = opt.Wavefront.from_images(input_path + "digits/*.jpg", wavelength, pixel_pitch, optimize_resolution=False, padding=padding)
+    z = 10 * opt.cm + torch.arange(-5, 5, 1) * opt.cm
+    #z = torch.arange(-5, 5, 1) * 300 / 5
     summary_freq=1
 else:
     # 2D
@@ -56,7 +58,7 @@ class TestGercherbergSaxton(unittest.TestCase):
 
     def test_bin_amp_phase_gercherberg_saxton(self):
         experiment = "bin_amp_phase_GS_3D" if MULTIPLANE else "bin_amp_phase_GS_2D"
-        setup = 'fourier_fresnel-end_bin-padded_dummy_units '
+        setup = 'fourier_fresnel-end_bin-off_axis-bis'
 
         writer = init_writer(output_path, experiment, setup=setup)
 
@@ -64,13 +66,13 @@ class TestGercherbergSaxton(unittest.TestCase):
         holo_wf.plot(intensity=defaultdict(str, title=experiment+"__holo", path=output_path, save=True))
 
         recon_wf = propagator.forward(holo_wf)
-        recon_wf.plot(intensity=defaultdict(str, title=experiment+"__recon", path=output_path, save=True, suppress_center=suppress_center, normalize=True))
+        recon_wf.plot(intensity=defaultdict(str, title=experiment+"__recon", path=output_path, save=True, suppress_center=suppress_center, normalize=True, threshold_foreground=True))
 
         writer.close()
 
     def test_bin_amp_amp_gercherberg_saxton(self):
         experiment = "bin_amp_amp_GS_3D" if MULTIPLANE else "bin_amp_amp_GS_2D_"
-        setup = 'fourier_fresnel-end_bin-mask'
+        #setup = 'fresnel-end_bin-off_axis'
 
         # modes = ["otsu", 'yen', 'isodata', 'li', 'minimum', 'mean', 'niblack','sauvola','triangle']
         bin_amp_mode = "otsu"
@@ -82,7 +84,7 @@ class TestGercherbergSaxton(unittest.TestCase):
         holo_wf.plot(intensity=defaultdict(str, title=experiment+"__holo", path=output_path, save=True))
 
         recon_wf = propagator.forward(holo_wf)
-        recon_wf.plot(intensity=defaultdict(str, title=experiment+"__recon", path=output_path, save=True, normalize=True, suppress_center=suppress_center))
+        recon_wf.plot(intensity=defaultdict(str, title=experiment+"__recon", path=output_path, save=True, normalize=True, suppress_center=suppress_center, threshold_foreground=True))
 
         writer.close()
 
@@ -101,15 +103,15 @@ class TestGercherbergSaxton(unittest.TestCase):
 
     def test_bin_amp_phase_sgd(self):
         experiment = "bin_amp_phase-SGD_3D" if MULTIPLANE else "bin_amp_phase-SGD_2D"
-        setup='fresnel-end_bin'
+        setup='fourier_fresnel-end_bin-off_axis-4_iter'
 
         writer = init_writer(output_path, experiment, setup=setup)
 
         holo_wf = bin_amp_phase_sgd(start_wf, target_wf.amplitude, propagator, loss_fn, writer, max_iter=max_iter, lr=lr, scale_loss=scale_loss, summary_freq=summary_freq)
-        holo_wf.plot(phase=defaultdict(str, title=experiment + "__holo", path=output_path, save=True))
+        holo_wf.plot(intensity=defaultdict(str, title=experiment + "__holo", path=output_path, save=True))
 
         recon_wf = propagator.forward(holo_wf)
-        recon_wf.plot(intensity=defaultdict(str, title=experiment + "__recon", path=output_path, save=True, normalize=True))
+        recon_wf.plot(intensity=defaultdict(str, title=experiment + "__recon", path=output_path, save=True, normalize=True, threshold_foreground=True))
 
         writer.close()
 
@@ -117,7 +119,7 @@ class TestGercherbergSaxton(unittest.TestCase):
 
     def test_bin_amp_amp_sgd(self):
         experiment = "bin_amp_amp-SGD_3D_" if MULTIPLANE else "bin_amp_amp-SGD_2D_"
-        setup = 'fourier_fresnel-end_bin-mask'
+        setup = 'fourier_fresnel-end_bin-mask-in_axis'
 
         #modes = ["otsu", 'yen', 'isodata', 'li', 'minimum', 'mean', 'niblack','sauvola','triangle']
         bin_amp_mode = "otsu"
@@ -126,10 +128,10 @@ class TestGercherbergSaxton(unittest.TestCase):
 
         diffused_start_wf = opt.RandomPhaseMask().forward(start_wf)
         holo_wf = bin_amp_amp_sgd(diffused_start_wf, target_wf.amplitude, propagator, loss_fn, writer, max_iter=max_iter, lr=lr, scale_loss=scale_loss, bin_amp_mode=bin_amp_mode, summary_freq=summary_freq)
-        holo_wf.plot(intensity=defaultdict(str, title=experiment + "__holo", path=output_path, save=True))
+        holo_wf.plot(intensity=defaultdict(str, title=experiment + "__holo", path=output_path, save=True, ))
 
         recon_wf = propagator.forward(holo_wf)
-        recon_wf.plot(intensity=defaultdict(str, title=experiment + "__recon", path=output_path, save=True, normalize=True))
+        recon_wf.plot(intensity=defaultdict(str, title=experiment + "__recon", path=output_path, save=True, normalize=True, threshold_foreground=True))
 
         writer.close()
 

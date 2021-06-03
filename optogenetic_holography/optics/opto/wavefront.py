@@ -1,10 +1,10 @@
 import copy
 import glob
-
 import cv2
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+from skimage import filters
 plt.style.use('dark_background')
 
 #from optogenetic_holography.optics.wavefront import WavefrontInterface
@@ -25,16 +25,15 @@ class Wavefront:
         images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(path))])
 
         resolution = images.shape[1:]
-        if isinstance(padding, list) and len(padding) == 4:
-            resolution = (resolution[0] + padding, resolution[1] + 2 * padding)
-            # TODO
-        resolution = (resolution[0] + 2 * padding, resolution[1] + 2 * padding)
+        if isinstance(padding, int):
+            padding = [padding] * 4  # [left, right, top, bottom]
+        resolution = (resolution[0] + padding[0] + padding[1], resolution[1] + padding[2] + padding[3])
         if optimize_resolution:
             resolution = 2 ** np.ceil(np.log2(resolution))  # powers of 2 for optimized FFT
             resolution = (int(resolution[0]), int(resolution[1]))
         padded_images = np.zeros(images.shape[:1] + resolution, dtype=np.uint8)
         origin = ((resolution[0] - images.shape[1]) // 2, (resolution[1] - images.shape[2]) // 2)
-        padded_images[:, origin[0]:origin[0] + images.shape[1], origin[1]:origin[1] + images.shape[2]] = images
+        padded_images[:, padding[0]:padding[0] + images.shape[1], padding[2]:padding[2] + images.shape[2]] = images
 
         wf = Wavefront(wavelength, pixel_pitch, resolution, depth=images.shape[0])
         if intensity:
@@ -100,7 +99,7 @@ class Wavefront:
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
 
-    def plot(self, fig_options=None, **kwargs):
+    def plot(self, **kwargs):
         if 'intensity' in kwargs:
             options = kwargs['intensity']
             img = self.intensity
@@ -113,6 +112,9 @@ class Wavefront:
             options = kwargs['phase']
 
         for i in range(self.depth):
+            if options["threshold_foreground"]:
+                img[i] = (img[i] > filters.threshold_otsu(img[i]))
+
             plt.imshow(img[i], cmap='gray')
             plt.xticks([]), plt.yticks([])
             if options['save']: plt.savefig(options['path'] + options['title'] + str(i+1) + '.jpg', bbox_inches="tight", pad_inches = 0)

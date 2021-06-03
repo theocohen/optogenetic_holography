@@ -20,7 +20,7 @@ def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, 
 
         if not iter % summary_freq:
             logging.info("GS iteration {}/{}".format(iter, max_iter))
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, show_holo="phase")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, show_holo="none")
 
         recon_wf.amplitude = target_amplitude
         holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=0)
@@ -29,7 +29,7 @@ def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, 
     #binarization
     holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf), start_wf.phase)
     recon_wf = propagator.forward(holo_wf)
-    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, show_holo="amplitude")
+    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, show_holo="none")
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(time.time() - start_time))}")
     return holo_wf
@@ -159,7 +159,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', show_holo="none")
 
     with torch.no_grad():
-        holo_wf.amplitude = from_amp_to_bin_amp(holo_wf, method=bin_amp_mode)
+        holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method=bin_amp_mode)
 
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude
