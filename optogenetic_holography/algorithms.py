@@ -10,7 +10,7 @@ from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import write_summary, assert_phase_unchanged
 
 
-def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, writer, max_iter=1000, scale_loss=False) -> opt.Wavefront:
+def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, writer, max_iter=1000, scale_loss=False, summary_freq=100) -> opt.Wavefront:
     """Technically not the original Gercherberg-Saxton algorithm as not restricted to Fourier propagation"""
     start_time = time.time()
     holo_wf = start_wf.copy(copy_wf=True)
@@ -18,31 +18,31 @@ def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, 
     for iter in range(max_iter):
         recon_wf = propagator.forward(holo_wf)
 
-        if not iter % 100:
+        if not iter % summary_freq:
             logging.info("GS iteration {}/{}".format(iter, max_iter))
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, show_holo="none")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, show_holo="phase")
 
         recon_wf.amplitude = target_amplitude
         holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=0)
         #holo_wf.amplitude = from_phase_to_bin_amp(propagator.backward(recon_wf))
 
     #binarization
-    holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf), start_wf.phase)  # fixme
+    holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf), start_wf.phase)
     recon_wf = propagator.forward(holo_wf)
-    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, show_holo="none")
+    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, show_holo="amplitude")
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(time.time() - start_time))}")
     return holo_wf
 
 
-def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, writer, max_iter=1000, scale_loss=False, bin_amp_mode="otsu") -> opt.Wavefront:
+def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, propagator: opt.Propagator, writer, max_iter=1000, scale_loss=False, bin_amp_mode="otsu", summary_freq=100) -> opt.Wavefront:
     start_time = time.time()
     holo_wf = start_wf.copy(copy_wf=True)
 
     for iter in range(max_iter):
         recon_wf = propagator.forward(holo_wf)
 
-        if not iter % 100:
+        if not iter % summary_freq:
             logging.info("GS iteration {}/{}".format(iter, max_iter))
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, show_holo="none")
 
@@ -50,7 +50,7 @@ def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, pr
         holo_wf.amplitude = propagator.backward(recon_wf).amplitude
         #holo_wf.amplitude = from_amp_to_bin_amp(propagator.backward(recon_wf), method=bin_amp_mode)
 
-    holo_wf.amplitude = from_amp_to_bin_amp(holo_wf, method=bin_amp_mode)
+    holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=0), method=bin_amp_mode)
 
     recon_wf = propagator.forward(holo_wf)
     write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, show_holo="none")
@@ -59,7 +59,7 @@ def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, pr
     return holo_wf
 
 
-def phase_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False) -> opt.Wavefront:
+def phase_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False, summary_freq=100) -> opt.Wavefront:
     holo_wf = start_wf.copy(copy_wf=True)
 
     phase = start_wf.phase.requires_grad_(True)
@@ -80,7 +80,7 @@ def phase_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=
         optimizer.step()
         scheduler.step(loss)
 
-        if not iter % 100:
+        if not iter % summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{max_iter}. Loss {loss}, lr {lr}")
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', show_holo="phase")
@@ -88,7 +88,7 @@ def phase_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=
     return holo_wf
 
 
-def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False) -> opt.Wavefront:
+def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False, summary_freq=100) -> opt.Wavefront:
     start_time = time.time()
     holo_wf = start_wf.copy(copy_wf=True)
 
@@ -110,13 +110,13 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, m
         optimizer.step()
         scheduler.step(loss)
 
-        if not iter % 100:
+        if not iter % summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{max_iter}. Loss {loss}, lr {lr}")
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', show_holo="none")
 
     with torch.no_grad():
-        holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf), start_wf.phase)  # fixme
+        holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf), start_wf.phase)
 
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if scale_loss else recon_wf.amplitude
@@ -126,7 +126,7 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, m
     return holo_wf
 
 
-def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False, bin_amp_mode="otsu") -> opt.Wavefront:
+def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False, bin_amp_mode="otsu", summary_freq=100) -> opt.Wavefront:
     start_time = time.time()
     holo_wf = start_wf.copy(copy_wf=True)
 
@@ -153,7 +153,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max
         optimizer.step()
         scheduler.step(loss)
 
-        if not iter % 100:
+        if not iter % summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{max_iter}. Loss {loss}, lr {lr}")
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', show_holo="none")
@@ -169,7 +169,8 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max
     return holo_wf
 
 
-def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False, sharpness=1, threshold=None) -> opt.Wavefront:
+def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, loss_fn, writer, max_iter=1000, lr=0.1, scale_loss=False, sharpness=1, threshold=None, summary_freq=100) -> opt.Wavefront:
+    # fixme
     start_time = time.time()
     holo_wf = start_wf.copy(copy_wf=True)
 
@@ -200,7 +201,7 @@ def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, loss_fn, writer,
         optimizer.step()
         scheduler.step(loss)
 
-        if not iter % 100:
+        if not iter % summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{max_iter}. Loss {loss}, lr {lr}")
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, prefix='', show_holo="both")

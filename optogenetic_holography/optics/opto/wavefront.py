@@ -25,6 +25,9 @@ class Wavefront:
         images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(path))])
 
         resolution = images.shape[1:]
+        if isinstance(padding, list) and len(padding) == 4:
+            resolution = (resolution[0] + padding, resolution[1] + 2 * padding)
+            # TODO
         resolution = (resolution[0] + 2 * padding, resolution[1] + 2 * padding)
         if optimize_resolution:
             resolution = 2 ** np.ceil(np.log2(resolution))  # powers of 2 for optimized FFT
@@ -114,7 +117,7 @@ class Wavefront:
             plt.xticks([]), plt.yticks([])
             if options['save']: plt.savefig(options['path'] + options['title'] + str(i+1) + '.jpg', bbox_inches="tight", pad_inches = 0)
             plt.colorbar()
-            plt.title(options['title'] + '_plane_' + str(i))
+            plt.title(options['title'] + '_plane_' + str(i+1))
             plt.show()
             plt.close()
 

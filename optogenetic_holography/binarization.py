@@ -12,7 +12,7 @@ def from_phase_to_bin_amp(holo_wf):
     #return ((holo_wf.phase > - np.pi/2) & (holo_wf.phase < np.pi/2)).double()
 
 
-def from_amp_to_bin_amp(holo_wf, method="mean"):
+def from_amp_to_bin_amp(holo_amp, method="mean"):
     """
     if method == "mean":
         return (holo_wf.amplitude > holo_wf.amplitude.mean()).double()
@@ -42,9 +42,11 @@ def from_amp_to_bin_amp(holo_wf, method="mean"):
     elif method == "yen":
         threshold_method = filters.threshold_yen
 
-    img_stack = opt.Wavefront.to_numpy(holo_wf.amplitude)
-    thresholds = []
-    for img in img_stack:
-        thresholds.append(threshold_method(img))
-    thresholds = torch.Tensor(thresholds).unsqueeze(1)
-    return (holo_wf.amplitude > thresholds).double()
+    #img_stack = opt.Wavefront.to_numpy(holo_Wf.amplitude)
+    #thresholds = []
+    #for img in img_stack:
+    #    thresholds.append(threshold_method(img))
+    #thresholds = torch.Tensor(thresholds).unsqueeze(1)
+    #return (holo_Wf.amplitude > thresholds).double()
+    amp = opt.Wavefront.to_numpy(holo_amp)
+    return (holo_amp > threshold_method(amp)).double()
