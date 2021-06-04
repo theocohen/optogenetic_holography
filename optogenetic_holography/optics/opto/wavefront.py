@@ -11,10 +11,11 @@ plt.style.use('dark_background')
 
 
 class Wavefront:
-    def __init__(self, wavelength, pixel_pitch, resolution, depth=1):
+    def __init__(self, wavelength, pixel_pitch, resolution, depth=1, batch=1):
         assert len(resolution) == 2
         self.resolution = resolution
         self.depth = depth
+        self.batch = batch
         self.u = torch.ones(self.shape, dtype=torch.complex128)
         self.wavelength = wavelength
         self.pixel_pitch = pixel_pitch
@@ -38,18 +39,19 @@ class Wavefront:
         wf = Wavefront(wavelength, pixel_pitch, resolution, depth=images.shape[0])
         if intensity:
             wf.intensity = torch.tensor(padded_images * scale_intensity).double()
-            wf.amplitude /= wf.amplitude.amax(dim=(1, 2, 3), keepdim=True)
+            wf.amplitude /= wf.amplitude.amax(dim=(2, 3), keepdim=True)
         else:
             wf.phase = torch.tensor(padded_images)
         return wf
 
     @property
     def shape(self):
-        return (self.depth, 1,) + self.resolution
+        return (self.batch, self.depth,) + self.resolution
 
     @shape.setter
     def shape(self, shape):
-        self.depth = shape[0]
+        self.batch = shape[0]
+        self.depth = shape[1]
         self.resolution = shape[:2]
 
     @property
@@ -58,7 +60,7 @@ class Wavefront:
 
     @property
     def scaled_amplitude(self):
-        return self.amplitude / self.amplitude.amax(dim=(1,2,3), keepdim=True)
+        return self.amplitude / self.amplitude.amax(dim=(2,3), keepdim=True)
 
     @amplitude.setter
     def amplitude(self, new_amplitude):
@@ -90,7 +92,7 @@ class Wavefront:
 
     @classmethod
     def to_numpy(cls, tt):
-        return tt.squeeze(1).cpu().detach().numpy()
+        return tt.squeeze(0).cpu().detach().numpy()
 
     def polar_to_rect(self, amp, phase):
         """from neural holo"""
@@ -111,6 +113,7 @@ class Wavefront:
             img = Wavefront.to_numpy(self.phase)
             options = kwargs['phase']
 
+        assert len(img.shape) == 3, "cannot plot intensity of batch of wavefronts"
         for i in range(self.depth):
             if options["threshold_foreground"]:
                 img[i] = (img[i] > filters.threshold_otsu(img[i]))
@@ -124,7 +127,7 @@ class Wavefront:
             plt.close()
 
     def copy(self, copy_wf=False):
-        return copy.deepcopy(self) if copy_wf else Wavefront(self.wavelength, self.pixel_pitch, self.resolution, depth=self.depth)
+        return copy.deepcopy(self) if copy_wf else Wavefront(self.wavelength, self.pixel_pitch, self.resolution, depth=self.depth, batch=self.batch)
 
     def requires_grad(self):
         self.u.requires_grad_(True)

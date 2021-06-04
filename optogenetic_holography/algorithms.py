@@ -23,7 +23,7 @@ def bin_amp_phase_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, 
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, prefix='', scale_loss=scale_loss, show_holo="none")
 
         recon_wf.amplitude = target_amplitude
-        holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=0)
+        holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=1)
         #holo_wf.amplitude = from_phase_to_bin_amp(propagator.backward(recon_wf))
 
     #binarization
@@ -50,7 +50,7 @@ def bin_amp_amp_gercherberg_saxton(start_wf: opt.Wavefront, target_amplitude, pr
         holo_wf.amplitude = propagator.backward(recon_wf).amplitude
         #holo_wf.amplitude = from_amp_to_bin_amp(propagator.backward(recon_wf), method=bin_amp_mode)
 
-    holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=0), method=bin_amp_mode)
+    holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=1), method=bin_amp_mode)
 
     recon_wf = propagator.forward(holo_wf)
     write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, prefix='', scale_loss=scale_loss, show_holo="none")

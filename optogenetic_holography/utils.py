@@ -1,4 +1,6 @@
 import os
+import shutil
+
 #from pytorch_ssim import ssim
 from datetime import datetime
 
@@ -11,8 +13,9 @@ from optogenetic_holography.optics import optics_backend as opt
 
 
 def cond_mkdir(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    os.makedirs(path)
 
 
 def init_writer(output_path, experiment, setup=None):

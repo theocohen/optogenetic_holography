@@ -44,7 +44,7 @@ class FresnelPropagator(Propagator):
 
     def __init__(self, z):
         z = torch.tensor([z]) if not torch.is_tensor(z) else z
-        self.z = z.reshape((-1, 1, 1, 1))
+        self.z = z.reshape((1, -1, 1, 1))
         self.precomputed_H = None
 
     def forward(self, wf) -> Wavefront:
@@ -65,7 +65,7 @@ class FresnelPropagator(Propagator):
             self.precomputed_H = torch.exp(1j * H_exp * self.z)
 
         propagated_wf = wf.copy()
-        propagated_wf.depth = self.z.shape[0]
+        propagated_wf.depth = self.z.shape[1]
         G = torch.fft.fftshift(torch.fft.fft2(wf.u, norm='ortho'))
         propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(G * self.precomputed_H), norm='ortho')
         return propagated_wf

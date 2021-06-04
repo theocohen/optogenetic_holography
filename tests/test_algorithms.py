@@ -72,7 +72,7 @@ class TestGercherbergSaxton(unittest.TestCase):
 
     def test_bin_amp_amp_gercherberg_saxton(self):
         experiment = "bin_amp_amp_GS_3D" if MULTIPLANE else "bin_amp_amp_GS_2D_"
-        #setup = 'fresnel-end_bin-off_axis'
+        setup = 'fourier_fresnel-end_bin-in_axis-mask'
 
         # modes = ["otsu", 'yen', 'isodata', 'li', 'minimum', 'mean', 'niblack','sauvola','triangle']
         bin_amp_mode = "otsu"
