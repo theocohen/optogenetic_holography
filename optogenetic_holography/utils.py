@@ -1,6 +1,5 @@
 import os
-import shutil
-
+import logging
 #from pytorch_ssim import ssim
 from datetime import datetime
 
@@ -14,7 +13,10 @@ from optogenetic_holography.optics import optics_backend as opt
 
 def cond_mkdir(path):
     if os.path.exists(path):
-        shutil.rmtree(path)
+        logging.info(f"Deleting summaries at {path}")
+        for f in os.listdir(path):
+            os.remove(os.path.join(path, f))
+        os.removedirs(path)
     os.makedirs(path)
 
 
@@ -35,26 +37,38 @@ def assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True):
             assert phase_shift[i] < 1e-9, f'index:{i}, diff:{d}, phase_holo:{holo_wf.phase.flatten()[i]}, phase_start:{start_wf.phase.flatten()[i]}, amp_optim:{amplitude.flatten()[i]}, amp_holo:{holo_wf.amplitude.flatten()[i]}. amp_start:{start_wf.amplitude.flatten()[i]}'
 
 
-def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='', scale_loss=False, show_holo="none"):
+def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='', scale_loss=False, show_holo="none", plane_idx=0, batch_idx=0):
     """todo ROI"""
 
     # scaling from neural-holo (legit?)
     #scaled_recon_amp = recon_amp * torch.sum(recon_amp * target_amp) / recon_wf.total_intensity
     #scaled_recon_amp = recon_amp / recon_amp.max()  # scaling
 
-    writer.add_image(f'{prefix}/Reconstructed intensity', recon_wf.intensity[0], iter, dataformats='HW')
+    writer.add_image(f'{prefix}/Reconstructed intensity', recon_wf.intensity[recon_wf.roi][batch_idx][plane_idx], iter, dataformats='HW')
 
     if show_holo == "both" or show_holo == "amp":
-        writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[0], iter, dataformats='HW')
+        writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
     if show_holo == "both" or show_holo == "phase":
-        writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[0], iter, dataformats='HW')
+        writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
 
-    loss = loss if loss is not None else (mse_loss(recon_wf.scaled_amplitude.detach(), target_amp) if scale_loss else mse_loss(recon_wf.amplitude.detach(), target_amp))
+    loss = loss if loss is not None else (mse_loss(recon_wf.scaled_amplitude.detach()[recon_wf.roi][batch_idx], target_amp[recon_wf.roi]) if scale_loss else mse_loss(recon_wf.amplitude.detach()[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]))
     writer.add_scalar(f'{prefix}/Loss', loss, iter)
 
-    writer.add_scalar(f'{prefix}/ssim', ssim(recon_wf.scaled_amplitude, target_amp), iter)  # scaling to avoid error
-    writer.add_scalar(f'{prefix}/psnr', psnr(recon_wf.scaled_amplitude, target_amp), iter)
+    writer.add_scalar(f'{prefix}/ssim', ssim(recon_wf.scaled_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)  # scaling to avoid error
+    writer.add_scalar(f'{prefix}/psnr', psnr(recon_wf.scaled_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)
 
     if lr:
         writer.add_scalar(f'{prefix}/lr', lr, iter)
+
+
+def plot_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp):
+    prefix = 'Time multiplexing'
+    for t in range(1, recon_wf_stack.batch):  # fixme redundant computation
+        recon_wf = recon_wf_stack.time_average(t_end=t)
+        writer.add_image(f'{prefix}/TA Intensity sequence', recon_wf.intensity[recon_wf.roi][0][0], t, dataformats='HW')
+
+        writer.add_scalar(f'{prefix}/MSE', mse_loss(recon_wf.amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
+        writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.scaled_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
+        writer.add_scalar(f'{prefix}/PSNR', plot_time_average_sequence(recon_wf.scaled_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
+
 

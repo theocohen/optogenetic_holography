@@ -11,14 +11,14 @@ plt.style.use('dark_background')
 
 
 class Wavefront:
-    def __init__(self, wavelength, pixel_pitch, resolution, depth=1, batch=1):
+    def __init__(self, wavelength, pixel_pitch, resolution, depth=1, batch=1, roi=None):
         assert len(resolution) == 2
         self.resolution = resolution
-        self.depth = depth
-        self.batch = batch
+        self.shape = (batch, depth,) + resolution
         self.u = torch.ones(self.shape, dtype=torch.complex128)
         self.wavelength = wavelength
         self.pixel_pitch = pixel_pitch
+        self.roi = roi if roi is not None else (slice(None),) * 4
 
     @classmethod
     def from_images(cls, path, wavelength, pixel_pitch, intensity=True, scale_intensity=1, padding=10, optimize_resolution=True):
@@ -32,11 +32,12 @@ class Wavefront:
         if optimize_resolution:
             resolution = 2 ** np.ceil(np.log2(resolution))  # powers of 2 for optimized FFT
             resolution = (int(resolution[0]), int(resolution[1]))
-        padded_images = np.zeros(images.shape[:1] + resolution, dtype=np.uint8)
-        origin = ((resolution[0] - images.shape[1]) // 2, (resolution[1] - images.shape[2]) // 2)
-        padded_images[:, padding[0]:padding[0] + images.shape[1], padding[2]:padding[2] + images.shape[2]] = images
 
         wf = Wavefront(wavelength, pixel_pitch, resolution, depth=images.shape[0])
+        wf.roi = slice(None), slice(None), slice(padding[0], padding[0] + images.shape[1]), slice(padding[2], padding[2] + images.shape[2])
+        padded_images = np.zeros(images.shape[:1] + resolution, dtype=np.uint8)
+        padded_images[wf.roi[1:]] = images
+
         if intensity:
             wf.intensity = torch.tensor(padded_images * scale_intensity).double()
             wf.amplitude /= wf.amplitude.amax(dim=(2, 3), keepdim=True)
@@ -45,14 +46,26 @@ class Wavefront:
         return wf
 
     @property
-    def shape(self):
-        return (self.batch, self.depth,) + self.resolution
+    def batch(self):
+        return self.shape[0]
 
-    @shape.setter
-    def shape(self, shape):
-        self.batch = shape[0]
-        self.depth = shape[1]
-        self.resolution = shape[:2]
+    @batch.setter
+    def batch(self, new_batch):
+        prev_batch = self.batch
+        self.shape = (new_batch,) + self.shape[1:]
+        if new_batch > prev_batch:
+            self.u = self.u.broadcast_to(self.shape)
+
+    @property
+    def depth(self):
+        return self.shape[1]
+
+    @depth.setter
+    def depth(self, new_depth):
+        prev_depth = self.depth
+        self.shape = (self.shape[0], new_depth) + self.shape[2:]
+        if new_depth > prev_depth:
+            self.u = self.u.broadcast_to(self.shape)
 
     @property
     def amplitude(self):
@@ -64,19 +77,21 @@ class Wavefront:
 
     @amplitude.setter
     def amplitude(self, new_amplitude):
-        if len(new_amplitude.shape) < 4:
-            new_amplitude = new_amplitude.reshape(self.shape)
-        self.u = torch.polar(new_amplitude, self.phase)
+        self.u = torch.polar(new_amplitude.broadcast_to(self.shape), self.phase)
+
+    def set_random_amplitude(self):
+        self.amplitude = torch.rand(self.shape).double()
 
     @property
     def phase(self):
         return self.u.angle()
 
+    def set_random_phase(self):
+        self.phase = (np.pi * (1 - 2 * torch.rand(self.shape))).double()  # between -pi to pi
+
     @phase.setter
     def phase(self, new_phase):
-        if len(new_phase.shape) < 4:
-            new_phase = new_phase.reshape(self.shape)
-        self.u = torch.polar(self.amplitude, new_phase.reshape(self.shape))
+        self.u = torch.polar(self.amplitude, new_phase.broadcast_to(self.shape))
 
     @property
     def intensity(self):
@@ -84,7 +99,7 @@ class Wavefront:
 
     @intensity.setter
     def intensity(self, new_intensity):
-        self.amplitude = torch.sqrt(new_intensity)
+        self.amplitude = torch.sqrt(new_intensity).broadcast_to(self.shape)
 
     @property
     def total_intensity(self):
@@ -92,11 +107,11 @@ class Wavefront:
 
     @classmethod
     def to_numpy(cls, tt):
-        return tt.squeeze(0).cpu().detach().numpy()
+        return tt.cpu().detach().numpy()
 
     def polar_to_rect(self, amp, phase):
         """from neural holo"""
-        self.u = torch.complex(amp * torch.cos(phase), amp * torch.sin(phase)).reshape(self.shape)
+        self.u = torch.complex(amp * torch.cos(phase), amp * torch.sin(phase)).broadcast_to(self.shape)
 
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
@@ -113,21 +128,34 @@ class Wavefront:
             img = Wavefront.to_numpy(self.phase)
             options = kwargs['phase']
 
-        assert len(img.shape) == 3, "cannot plot intensity of batch of wavefronts"
-        for i in range(self.depth):
-            if options["threshold_foreground"]:
-                img[i] = (img[i] > filters.threshold_otsu(img[i]))
+        if options["crop_roi"] and self.roi is not None:
+            img = img[self.roi]
+        if options["threshold_foreground"]:
+            img = (img > filters.threshold_otsu(img))
+        for t in range(self.batch):
+            for d in range(self.depth):
+                plt.imshow(img[t][d], cmap='gray')
+                plt.xticks([]), plt.yticks([])
+                if options['save']: plt.savefig(f"{options['path'] + options['title']}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0)
+                plt.colorbar()
+                plt.title(f"{options['title']}_t{str(t+1)}_d{str(d+1)}.jpg")
+                plt.show()
+                plt.close()
 
-            plt.imshow(img[i], cmap='gray')
-            plt.xticks([]), plt.yticks([])
-            if options['save']: plt.savefig(options['path'] + options['title'] + str(i+1) + '.jpg', bbox_inches="tight", pad_inches = 0)
-            plt.colorbar()
-            plt.title(options['title'] + '_plane_' + str(i+1))
-            plt.show()
-            plt.close()
+    def time_average(self, t_start=0, t_end=None):
+        ta_wf = self.copy()
+        ta_wf.batch = 1
+        t_end = self.batch if t_end is None else t_end
+        ta_wf.u = self.u[t_start:t_end, :, :].mean(dim=0, keepdim=True)
+        return ta_wf
 
-    def copy(self, copy_wf=False):
-        return copy.deepcopy(self) if copy_wf else Wavefront(self.wavelength, self.pixel_pitch, self.resolution, depth=self.depth, batch=self.batch)
+    def copy(self, copy_u=False, batch=None, depth=None):
+        depth = self.depth if depth is None else depth
+        batch = self.batch if batch is None else batch
+        copy_wf = Wavefront(self.wavelength, self.pixel_pitch, self.resolution, depth=depth, batch=batch, roi=self.roi)
+        if copy_u:
+            copy_wf.u = self.u.broadcast_to(copy_wf.shape)
+        return copy_wf
 
     def requires_grad(self):
         self.u.requires_grad_(True)
