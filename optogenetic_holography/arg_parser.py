@@ -1,7 +1,21 @@
 import configargparse
 
+from optogenetic_holography.optics import optics_backend as opt
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise configargparse.ArgumentTypeError('Boolean value expected.')
+
 
 class ArgParser():
+
 
     def __init__(self):
         self.p = configargparse.ArgumentParser()
@@ -10,10 +24,14 @@ class ArgParser():
     def _add_io_args(self):
         self.p.add_argument('--target_path', required=True, type=str, help='')
         self.p.add_argument('--padding', type=int, nargs='+', default=0, help='Scalar or [left, right, top, bottom]')
-        self.p.add_argument('--optimize_resolution', type=bool, default=False, help='')
+        self.p.add_argument('--optimize_resolution', type=str2bool, nargs='?', default=False, help='')
         self.p.add_argument('--output_path', type=str, default='./output/', help='')
+        self.p.add_argument('--method', type=str, default='bin_amp_phase_GS', help='',
+                            choices=['bin_amp_phase_gs', 'bin_amp_amp_gs', 'bin_amp_phase_sgd', 'bin_amp_amp_sgd',
+                                     'bin_amp_amp_sig_sgd'], )
 
     def _add_propagation_args(self):
+        self.p.add_argument('--target_wf_intensity', type=float, default=1, help='')
         self.p.add_argument('--start_wf_intensity', type=float, default=1, help='')
         self.p.add_argument('--start_wf_phases', type=str, choices=['flat', 'random'], default='flat', help='')
         self.p.add_argument('--wavelength', type=float, default=488, help='unit: nm')
@@ -25,27 +43,45 @@ class ArgParser():
         self.p.add_argument('--lens_radius', type=float, default=6, help='unit: mm')
         self.p.add_argument('--lens_focal_length', type=float, default=20, help='unit: cm')
 
-    def _add_method_hyperparams(self):
-        self.p.add_argument('--method', type=str, default='bin_amp_phase_GS', help='',
-                       choices=['bin_amp_phase_GS', 'bin_amp_amp_GS', 'bin_amp_phase_SGD', 'bin_amp_amp_SGD',
-                                'bin_amp_amp_sig_SGD'], )
-        self.p.add_argument('--time_averaging_batch', type=int, default=1, help='')
-        self.p.add_argument('--iterations', type=int, default=10, help='')
-        self.p.add_argument('--lr', type=float, default=0.01, help='')
-        self.p.add_argument('--bin_amp_modulation', type=str, default='otsu', help='',
+    def _add_method_params(self):
+        g = self.p.add_argument_group('method_params', '')
+        g.add_argument('--ta_batch', type=int, default=1, help='Time averaging batch size')
+        g.add_argument('--iterations', type=int, default=10, help='')
+        g.add_argument('--lr', type=float, default=0.01, help='For sgd methods only')
+        g.add_argument('--bin_amp_mod', type=str, default='otsu', help='for bin_amp_amp methods only',
                        choices=['otsu', 'yen', 'isodata', 'li', 'minimum', 'mean', 'niblack', 'sauvola', 'triangle'])
-        self.p.add_argument('--random_holo_init', type=bool, default=True, help='')
-        self.p.add_argument('--scale_loss', type=bool, default=False, help='')
+        g.add_argument('--bin_sharpness', type=float, help='For bin_amp_amp_sig_sgd only')
+        g.add_argument('--bin_threshold', type=float, help='For bin_amp_amp_sig_sgd only')
+        g.add_argument('--random_holo_init', type=str2bool, nargs='?', default=True, help='')
+        g.add_argument('--scale_loss', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--average_batch_grads', type=bool, default=True, help='')
+        g.add_argument('--summary_freq', type=int, default=10, help='')
 
     def _add_logging_params(self):
-        self.p.add_argument('--remove_airy_disk', type=bool, default=False, help='')
-        self.p.add_argument('--crop_roi', type=bool, default=True, help='')
-        self.p.add_argument('--summary_freq', type=int, default=10, help='')
-        self.p.add_argument('--run_comment', type=str, default='', help='')
+        self.p.add_argument('--remove_airy_disk', type=str2bool, nargs='?', default=False, help='')
+        self.p.add_argument('--crop_roi',type=str2bool, nargs='?', default=True, help='')
+        self.p.add_argument('--comment', type=str, default='', help='')
+
+    def _adjust_units(self, args):
+        args.wavelength = args.wavelength * opt.nm
+        args.pixel_pitch = (args.pixel_pitch * opt.um,) * 2
+        args.lens_radius = args.lens_radius * opt.mm
+        args.lens_focal_length = args.lens_radius * opt.cm
+
+        if isinstance(args.propagation_dist, list) and len(args.propagation_dist) != 2:
+            self.p.error('--prop_dist either accepts a scalar or list of the form [start, stop].')
+        return args
 
     def parse_all_args(self):
         self._add_io_args()
         self._add_propagation_args()
-        self._add_method_hyperparams()
+        self._add_method_params()
         self._add_logging_params()
-        return self.p.parse_args()
+        args = self.p.parse_args()
+        args = self._adjust_units(args)
+
+        for group in self.p._action_groups:
+            if group.title == 'method_params':
+                method_params = {a.dest: getattr(args, a.dest, None) for a in group._group_actions}
+                method_params = configargparse.Namespace(**method_params)
+        return args, method_params

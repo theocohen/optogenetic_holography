@@ -11,17 +11,15 @@ plt.style.use('dark_background')
 
 
 class Wavefront:
-    def __init__(self, wavelength, pixel_pitch, resolution, depth=1, batch=1, roi=None):
+    def __init__(self, resolution, depth=1, batch=1, roi=None, scale_intensity=1):
         assert len(resolution) == 2
         self.resolution = resolution
         self.shape = (batch, depth,) + resolution
-        self.u = torch.ones(self.shape, dtype=torch.complex128)
-        self.wavelength = wavelength
-        self.pixel_pitch = pixel_pitch
+        self.u = torch.ones(self.shape, dtype=torch.complex128) * np.sqrt(scale_intensity)
         self.roi = roi if roi is not None else (slice(None),) * 4
 
     @classmethod
-    def from_images(cls, path, wavelength, pixel_pitch, intensity=True, scale_intensity=1, padding=10, optimize_resolution=True):
+    def from_images(cls, path, intensity=True, scale_intensity=1, padding=10, optimize_resolution=True):
         """assumes all image are of same shape"""
         images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(path))])
 
@@ -33,7 +31,7 @@ class Wavefront:
             resolution = 2 ** np.ceil(np.log2(resolution))  # powers of 2 for optimized FFT
             resolution = (int(resolution[0]), int(resolution[1]))
 
-        wf = Wavefront(wavelength, pixel_pitch, resolution, depth=images.shape[0])
+        wf = Wavefront(resolution, depth=images.shape[0])
         wf.roi = slice(None), slice(None), slice(padding[0], padding[0] + images.shape[1]), slice(padding[2], padding[2] + images.shape[2])
         padded_images = np.zeros(images.shape[:1] + resolution, dtype=np.uint8)
         padded_images[wf.roi[1:]] = images
@@ -152,7 +150,7 @@ class Wavefront:
     def copy(self, copy_u=False, batch=None, depth=None):
         depth = self.depth if depth is None else depth
         batch = self.batch if batch is None else batch
-        copy_wf = Wavefront(self.wavelength, self.pixel_pitch, self.resolution, depth=depth, batch=batch, roi=self.roi)
+        copy_wf = Wavefront(self.resolution, depth=depth, batch=batch, roi=self.roi)
         if copy_u:
             copy_wf.u = self.u.broadcast_to(copy_wf.shape)
         return copy_wf

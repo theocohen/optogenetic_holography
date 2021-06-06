@@ -11,7 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 from optogenetic_holography.optics import optics_backend as opt
 
 
-def cond_mkdir(path):
+def mkdir(path):
     if os.path.exists(path):
         logging.info(f"Deleting summaries at {path}")
         for f in os.listdir(path):
@@ -21,9 +21,9 @@ def cond_mkdir(path):
 
 
 def init_writer(output_path, experiment, setup=None):
-    summaries_dir = output_path + 'summaries/' + experiment + '/'
-    summaries_dir += setup if setup is not None else datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
-    cond_mkdir(summaries_dir)
+    summaries_dir = os.path.join(output_path, 'summaries', experiment)
+    summaries_dir = os.path.join(summaries_dir, setup if (setup is not None and setup is not '') else datetime.now().strftime("%Y.%m.%d-%H:%M:%S"))
+    mkdir(summaries_dir)
     return SummaryWriter(summaries_dir)
 
 

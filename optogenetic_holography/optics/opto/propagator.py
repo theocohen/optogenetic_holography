@@ -10,9 +10,9 @@ class FourierFresnelPropagator(Propagator):
     #Assumes propagates through lens, from a distance d=f to lens and to focal length from lens.
     #   Then, we use Fresnel propagation for the remaining short distance z
 
-    def __init__(self, radius, focal_length, z):
+    def __init__(self, radius, focal_length, wavelength, pixel_pitch, z):
         self.fourier_lens_propagator = FourierLensPropagator(radius, focal_length)
-        self.fresnel_propagator = FresnelPropagator(z)
+        self.fresnel_propagator = FresnelPropagator(wavelength, pixel_pitch, z)
 
     def forward(self, wf):
         return self.fresnel_propagator.forward(
@@ -42,17 +42,19 @@ class FourierLensPropagator(Propagator):
 
 class FresnelPropagator(Propagator):
 
-    def __init__(self, z):
+    def __init__(self, wavelength, pixel_pitch, z):
+        self.wavelength = wavelength
+        self.pixel_pitch = pixel_pitch
         z = torch.tensor([z]) if not torch.is_tensor(z) else z
         self.z = z.reshape((1, -1, 1, 1))
         self.precomputed_H = None
 
     def forward(self, wf) -> Wavefront:
         if self.precomputed_H is None:
-            k = 2 * np.pi / wf.wavelength
+            k = 2 * np.pi / self.wavelength
 
             nx, ny = wf.resolution
-            dx, dy = wf.pixel_pitch
+            dx, dy = self.pixel_pitch
 
             delta_x = 1 / (nx * dx)
             delta_y = 1 / (ny * dy)
@@ -61,7 +63,7 @@ class FresnelPropagator(Propagator):
             f_y = torch.arange(-ny / 2 + 1, ny / 2 + 1, 1, dtype=torch.float64) * delta_y
             f_y, f_x = torch.meshgrid(f_x, f_y)
 
-            H_exp = k - np.pi * wf.wavelength * (f_x ** 2 + f_y ** 2)
+            H_exp = k - np.pi * self.wavelength * (f_x ** 2 + f_y ** 2)
             self.precomputed_H = torch.exp(1j * H_exp * self.z)
 
         propagated_wf = wf.copy()

@@ -1,4 +1,4 @@
-target_path = ./input/digits.*.jpg
+target_path = ./input/digits/*.jpg
 padding = [50, 700, 50, 700]
 optimize_resolution = False
 
@@ -7,9 +7,9 @@ random_holo_init = True
 propagation_model = FourierFresnel
 propagation_dist = [-2, 2]
 
-method = bin_amp_phase_GS
-time_averaging_batch = 10
-iterations = 10
+method = bin_amp_amp_gs
+ta_batch = 1
+iterations = 1
 lr = 0.01
 random_holo_init = True
 

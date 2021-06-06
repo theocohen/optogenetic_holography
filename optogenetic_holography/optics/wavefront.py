@@ -7,16 +7,6 @@ class WavefrontInterface(ABC):
 
     @property
     @abstractmethod
-    def wavelength(self):
-        pass
-
-    @property
-    @abstractmethod
-    def pixel_pitch(self):
-        pass
-
-    @property
-    @abstractmethod
     def resolution(self):
         pass
 
