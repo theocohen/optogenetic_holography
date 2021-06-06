@@ -11,10 +11,11 @@ from optogenetic_holography.binarization import from_amp_to_bin_amp, from_phase_
 from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import init_writer, plot_time_average_sequence
 
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 output_path = "./output/"
 input_path = "./input/"
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 setup=None
 
 wavelength = 488 * opt.nm
@@ -39,7 +40,8 @@ MULTIPLANE = True
 if MULTIPLANE: # 3D
 
     target_wf = opt.Wavefront.from_images(input_path + "digits/*.jpg", wavelength, pixel_pitch, optimize_resolution=False, padding=padding)
-    z = 10 * opt.cm + torch.arange(-5, 5, 1) * opt.cm
+    #z = 10 * opt.cm + torch.arange(-5, 5, 1) * opt.cm  # fixme mm
+    z = torch.arange(-2, 2, 1) * opt.cm
     #z = torch.arange(-5, 5, 1) * 300 / 5
     summary_freq=1
 else:

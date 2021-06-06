@@ -1,0 +1,16 @@
+target_path = ./input/digits.*.jpg
+padding = [50, 700, 50, 700]
+optimize_resolution = False
+
+start_wf_phases = random
+random_holo_init = True
+propagation_model = FourierFresnel
+propagation_dist = [-2, 2]
+
+method = bin_amp_phase_GS
+time_averaging_batch = 10
+iterations = 10
+lr = 0.01
+random_holo_init = True
+
+summary_freq = 1
