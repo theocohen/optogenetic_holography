@@ -2,3 +2,4 @@
 /venv/
 /tests/output/summaries/*
 /input/
+/input/digits/

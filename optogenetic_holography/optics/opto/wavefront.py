@@ -114,30 +114,26 @@ class Wavefront:
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
 
-    def plot(self, **kwargs):
-        if 'intensity' in kwargs:
-            options = kwargs['intensity']
+    def plot(self, dir, options, type='intensity', title=''):
+        if type == 'intensity':
             img = self.intensity
-            if options['suppress_center']:
+            if options.remove_airy_disk:
                 img[:, self.resolution[0] // 2, self.resolution[1] // 2] = 0
-            if options['normalize']:
+            if options.normalise_int:
                 img = self.intensity / self.intensity.max()
-        elif 'phase' in kwargs:
+        elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
-            options = kwargs['phase']
 
-        if options["crop_roi"] and self.roi is not None:
+        if options.crop_roi and self.roi is not None:
             img = img[self.roi]
-        if options["threshold_foreground"]:
+        if options.threshold_foreground:
             img = (img > filters.threshold_otsu(img))
+
         for t in range(self.batch):
             for d in range(self.depth):
-                plt.imshow(img[t][d], cmap='gray')
+                plt.imshow(img[t][d], cmap=options.cmap)
                 plt.xticks([]), plt.yticks([])
-                if options['save']: plt.savefig(f"{options['path'] + options['title']}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0)
-                plt.colorbar()
-                plt.title(f"{options['title']}_t{str(t+1)}_d{str(d+1)}.jpg")
-                plt.show()
+                plt.savefig(f"{dir}/{title}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0)
                 plt.close()
 
     def time_average(self, t_start=0, t_end=None):

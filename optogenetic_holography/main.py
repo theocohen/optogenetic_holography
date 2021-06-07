@@ -3,23 +3,19 @@ import matplotlib
 matplotlib.use('agg')
 import os
 import logging
-import sys
+from shutil import copy2
 
 import numpy as np
 from torch import nn
-from torch.utils.tensorboard import SummaryWriter
 
 from optogenetic_holography.arg_parser import ArgParser
 from optogenetic_holography.optics import optics_backend as opt
-from optogenetic_holography.utils import mkdir, init_writer
+from optogenetic_holography.utils import mkdir, init_writer, plot_time_average_sequence, config_logger
 import optogenetic_holography.algorithms as algorithms
-
-logging.basicConfig(format='%(asctime)s - %(run_dir)s - %(message)s', level=logging.INFO)
-#logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 
 def main():
-    args, method_params = ArgParser().parse_all_args()
+    args, param_groups = ArgParser().parse_all_args()
 
     # Init wavefronts
     target_wf = opt.Wavefront.from_images(args.target_path, optimize_resolution=args.optimize_resolution, padding=args.padding, scale_intensity=args.target_wf_intensity)
@@ -40,22 +36,18 @@ def main():
     # Tensorboard writer
     dim = '3D' if target_wf.depth > 1 else '2D'
     run_dir = f"{args.propagation_model}/{dim}/{args.method}"
+    writer, summary_dir = init_writer(args.output_path, run_dir, setup=args.comment)
+    if args.config_path:
+        copy2(args.config_path, os.path.join(summary_dir, 'config.txt'))  # copy config file to summary directory
 
-    old_factory = logging.getLogRecordFactory()
-    def record_factory(*args, **kwargs):
-        record = old_factory(*args, **kwargs)
-        record.run_dir = run_dir
-        return record
-    logging.setLogRecordFactory(record_factory)
-
-    summary_dir = os.path.join(args.output_path, 'summaries', run_dir)
-    writer = init_writer(args.output_path, run_dir, setup=args.comment)
+    # setting logger format
+    config_logger(summary_dir, run_dir)
 
     #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  #todo
     def vectorised_loss(input, target):
         return nn.MSELoss(reduction='none')(input, target).mean(dim=(1, 2, 3), keepdim=False)
     loss_fn = nn.MSELoss() if args.average_batch_grads else vectorised_loss
-    method_params.loss_fn = loss_fn
+    param_groups['method_params'].loss_fn = loss_fn
 
     # methods
     generator = getattr(algorithms, args.method)
@@ -64,15 +56,17 @@ def main():
     start_time = time.time()
     logging.info("Starting")
 
-    holo_wf = generator(start_wf, target_wf.amplitude, propagator, writer, method_params)
-    #holo_wf.plot(intensity=defaultdict(str, title=experiment + "__holo", path=output_path, save=True))
+    holo_wf = generator(start_wf, target_wf.amplitude, propagator, writer, param_groups['method_params'])
+    holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo')
 
     recon_wf_stack = propagator.forward(holo_wf)
-    #plot_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude)
+    plot_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude)
+
     recon_wf = recon_wf_stack.time_average()
-    #recon_wf.plot(intensity=defaultdict(str, title=experiment + "__recon", path=output_path, save=True, suppress_center=suppress_center, normalize=True, threshold_foreground=True,crop_roi=True))
+    recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon')
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(time.time() - start_time))}\n")
+
     writer.close()
 
 

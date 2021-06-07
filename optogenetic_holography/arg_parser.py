@@ -29,6 +29,7 @@ class ArgParser():
         self.p.add_argument('--method', type=str, default='bin_amp_phase_GS', help='',
                             choices=['bin_amp_phase_gs', 'bin_amp_amp_gs', 'bin_amp_phase_sgd', 'bin_amp_amp_sgd',
                                      'bin_amp_amp_sig_sgd'], )
+        self.p.add_argument('--comment', type=str, default='', help='')
 
     def _add_propagation_args(self):
         self.p.add_argument('--target_wf_intensity', type=float, default=1, help='')
@@ -58,9 +59,12 @@ class ArgParser():
         g.add_argument('--summary_freq', type=int, default=10, help='')
 
     def _add_logging_params(self):
-        self.p.add_argument('--remove_airy_disk', type=str2bool, nargs='?', default=False, help='')
-        self.p.add_argument('--crop_roi',type=str2bool, nargs='?', default=True, help='')
-        self.p.add_argument('--comment', type=str, default='', help='')
+        g = self.p.add_argument_group('plot_params', '')
+        g.add_argument('--remove_airy_disk', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--crop_roi',type=str2bool, nargs='?', default=True, help='')
+        g.add_argument('--cmap', type=str, default='gray', help='')
+        g.add_argument('--normalise_int', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--threshold_foreground', type=str2bool, nargs='?', default=True, help='')
 
     def _adjust_units(self, args):
         args.wavelength = args.wavelength * opt.nm
@@ -80,8 +84,8 @@ class ArgParser():
         args = self.p.parse_args()
         args = self._adjust_units(args)
 
+        param_groups = {}
         for group in self.p._action_groups:
-            if group.title == 'method_params':
-                method_params = {a.dest: getattr(args, a.dest, None) for a in group._group_actions}
-                method_params = configargparse.Namespace(**method_params)
-        return args, method_params
+            if group.title in ['method_params', 'plot_params']:
+                param_groups[group.title] = configargparse.Namespace(**{a.dest: getattr(args, a.dest, None) for a in group._group_actions})
+        return args, param_groups
