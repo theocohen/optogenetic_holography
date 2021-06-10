@@ -40,7 +40,7 @@ class ArgParser():
         self.p.add_argument('--pixel_pitch', type=float, default=10, help='unit: um')
         self.p.add_argument('--propagation_model', type=str, default='FourierFresnel', choices=['FourierFresnel', 'Fresnel', 'Fourier'],
                        help='')
-        self.p.add_argument('--propagation_dist', type=float, nargs='+', default=10.0,
+        self.p.add_argument('--propagation_dist', type=float, nargs='+', default=[10],
                        help='Scalar or [start, end] from which linear space will be constructed. unit: cm')
         self.p.add_argument('--lens_radius', type=float, default=6, help='unit: mm')
         self.p.add_argument('--lens_focal_length', type=float, default=20, help='unit: cm')
