@@ -46,6 +46,8 @@ def main():
     # setting logger format
     config_logger(summary_dir, run_dir)
     logging.info(f'PyTorch device: {device}')
+    if device.type == 'cuda':
+        print(torch.cuda.get_device_properties(device))
 
     def vectorised_loss(input, target):
         return torch.nn.MSELoss(reduction='none')(input, target).mean(dim=(1, 2, 3), keepdim=False)
