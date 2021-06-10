@@ -48,7 +48,7 @@ class ArgParser():
         g = self.p.add_argument_group('method_params', '')
         g.add_argument('--ta_batch', type=int, default=1, help='Time averaging batch size')
         g.add_argument('--iterations', type=int, default=10, help='')
-        g.add_argument('--lr', type=float, default=0.01, help='For sgd methods only')
+        g.add_argument('--lr', type=float, default=0.1, help='For sgd methods only')
         g.add_argument('--bin_amp_mod', type=str, default='otsu', help='for bin_amp_amp methods only',
                        choices=['otsu', 'yen', 'isodata', 'li', 'minimum', 'mean', 'niblack', 'sauvola', 'triangle'])
         g.add_argument('--bin_sharpness', type=float, help='For bin_amp_amp_sig_sgd only')

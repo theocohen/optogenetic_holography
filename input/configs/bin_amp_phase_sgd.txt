@@ -1,16 +1,17 @@
+method = bin_amp_phase_sgd
+
 target_path = ./input/digits/*.jpg
 padding = [50, 700, 50, 700]
 optimize_resolution = False
 
-start_wf_phases = random
-random_holo_init = True
+start_wf_phases = flat
 propagation_model = FourierFresnel
 propagation_dist = [-2, 2]
 
-method = bin_amp_phase_sgd
-ta_batch = 1
-iterations = 1
-lr = 0.01
+ta_batch = 10
+iterations = 50
+lr = 0.1
 random_holo_init = True
 
-summary_freq = 1
+summary_freq = 5
+threshold_foreground = False

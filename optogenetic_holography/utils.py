@@ -3,6 +3,7 @@ import logging
 #from pytorch_ssim import ssim
 import sys
 from datetime import datetime
+import numpy as np
 
 from piq import psnr, ssim
 from torch.nn.functional import mse_loss
@@ -54,6 +55,7 @@ def assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True):
 def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='Iterations', scale_loss=False, show_holo="none", plane_idx=0, batch_idx=0):
 
     writer.add_image(f'{prefix}/Reconstructed intensity', recon_wf.intensity[recon_wf.roi][batch_idx][plane_idx], iter, dataformats='HW')
+    #writer.add_images(f'{prefix}/Reconstructed intensities', np.expand_dims(recon_wf.intensity[recon_wf.roi][batch_idx], axis=1), iter, dataformats='NCHW')
 
     if show_holo == "both" or show_holo == "amp":
         writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')

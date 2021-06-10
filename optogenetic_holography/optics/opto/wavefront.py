@@ -19,13 +19,13 @@ class Wavefront:
         self.roi = roi if roi is not None else (slice(None),) * 4
 
     @classmethod
-    def from_images(cls, path, intensity=True, scale_intensity=1, padding=10, optimize_resolution=True):
+    def from_images(cls, path, intensity=True, scale_intensity=1, padding=[0], optimize_resolution=True):
         """assumes all image are of same shape"""
         images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(path))])
 
         resolution = images.shape[1:]
-        if isinstance(padding, int):
-            padding = [padding] * 4  # [left, right, top, bottom]
+        if len(padding) == 1:
+            padding = padding * 4  # [left, right, top, bottom]
         resolution = (resolution[0] + padding[0] + padding[1], resolution[1] + padding[2] + padding[3])
         if optimize_resolution:
             resolution = 2 ** np.ceil(np.log2(resolution))  # powers of 2 for optimized FFT
@@ -134,6 +134,32 @@ class Wavefront:
                 plt.imshow(img[t][d], cmap=options.cmap)
                 plt.xticks([]), plt.yticks([])
                 plt.savefig(f"{dir}/{title}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0)
+                plt.close()
+
+    def plot_old(self, **kwargs):
+        if 'intensity' in kwargs:
+            options = kwargs['intensity']
+            img = self.intensity
+            if options['suppress_center']:
+                img[:, self.resolution[0] // 2, self.resolution[1] // 2] = 0
+            if options['normalize']:
+                img = self.intensity / self.intensity.max()
+        elif 'phase' in kwargs:
+            img = Wavefront.to_numpy(self.phase)
+            options = kwargs['phase']
+
+        if options["crop_roi"] and self.roi is not None:
+            img = img[self.roi]
+        if options["threshold_foreground"]:
+            img = (img > filters.threshold_otsu(img))
+        for t in range(self.batch):
+            for d in range(self.depth):
+                plt.imshow(img[t][d], cmap='gray')
+                plt.xticks([]), plt.yticks([])
+                if options['save']: plt.savefig(f"{options['path'] + options['title']}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0)
+                plt.colorbar()
+                plt.title(f"{options['title']}_t{str(t+1)}_d{str(d+1)}.jpg")
+                plt.show()
                 plt.close()
 
     def time_average(self, t_start=0, t_end=None):

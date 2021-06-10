@@ -5,8 +5,8 @@ from skimage import filters
 from optogenetic_holography.optics import optics_backend as opt
 
 
-def from_phase_to_bin_amp(holo_wf):
-    return (holo_wf.phase > 0).double()
+def from_phase_to_bin_amp(holo_phase):
+    return (holo_phase > 0).double()
     #return ((holo_wf.phase > - np.pi/2) & (holo_wf.phase < np.pi/2)).double()
 
 

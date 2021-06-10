@@ -13,8 +13,8 @@ from optogenetic_holography.utils import write_summary, assert_phase_unchanged
 def bin_amp_phase_gs(start_wf, target_amplitude, propagator, writer, context) -> opt.Wavefront:
     """Technically not the original Gercherberg-Saxton algorithm as not restricted to Fourier propagation"""
 
-    #holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amplitude.shape[1])
-    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=1)  # in-loop
+    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amplitude.shape[1])  #  optimize hologram stack
+    #holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=1)  # in-loop
     if context.random_holo_init:
         holo_wf.set_random_phase()
 
@@ -26,11 +26,15 @@ def bin_amp_phase_gs(start_wf, target_amplitude, propagator, writer, context) ->
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, scale_loss=context.scale_loss, show_holo="none")
 
         recon_wf.amplitude = target_amplitude
-        holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=1, keepdim=True)  #fixme optimal to average in-loop?
-        #holo_wf.amplitude = from_phase_to_bin_amp(propagator.backward(recon_wf))  binarisation in-loop
+        #holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=1, keepdim=True)  # in-loop mean
+        holo_wf.phase = propagator.backward(recon_wf).phase  # holo stack
+        #holo_wf.amplitude = from_phase_to_bin_amp(propagator.backward(recon_wf).phase)  binarisation in-loop
 
     #binarization
-    holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf), start_wf.phase)
+    holo_wf.depth = 1
+    holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase.mean(dim=1, keepdim=True)), start_wf.phase)
+    #holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)
+
     recon_wf = propagator.forward(holo_wf)
     write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, scale_loss=context.scale_loss, show_holo="none")
 
@@ -130,7 +134,7 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, writer, context) -
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=context.lr, show_holo="none")
 
     with torch.no_grad():
-        holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf), start_wf.phase)
+        holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)
 
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if context.scale_loss else recon_wf.amplitude
