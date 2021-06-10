@@ -20,13 +20,13 @@ class Wavefront:
         self.device = device
 
     @classmethod
-    def from_images(cls, path, intensity=True, scale_intensity=1, padding=[0], optimize_resolution=True, device='cpu'):
+    def from_images(cls, path, intensity=True, scale_intensity=1, padding=0, optimize_resolution=True, device='cpu'):
         """assumes all image are of same shape"""
         images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(path))])
 
         resolution = images.shape[1:]
-        if len(padding) == 1:
-            padding = padding * 4  # [left, right, top, bottom]
+        if isinstance(padding, int):
+            padding = [padding] * 4  # [left, right, top, bottom]
         resolution = (resolution[0] + padding[0] + padding[1], resolution[1] + padding[2] + padding[3])
         if optimize_resolution:
             resolution = 2 ** np.ceil(np.log2(resolution))  # powers of 2 for optimized FFT
