@@ -26,16 +26,17 @@ def main():
     if args.start_wf_phases == 'random':
         start_wf = opt.RandomPhaseMask().forward(start_wf)
 
-    # propagation model
-    if len(args.propagation_dist) == 2:
-        args.propagation_dist = np.linspace(args.propagation_dist[0], args.propagation_dist[1], num=target_wf.depth)
-
     # Tensorboard writer
     dim = '3D' if target_wf.depth > 1 else '2D'
     run_dir = f"{args.propagation_model}/{dim}/{args.method}"
     writer, summary_dir = init_writer(args.output_path, run_dir, setup=args.comment)
     if args.config_path:
         copy2(args.config_path, os.path.join(summary_dir, 'config.txt'))  # copy config file to summary directory
+
+    # propagation model
+    if len(args.propagation_dist) == 2:
+        assert dim == '3D', "Specified non-scalar propagation distance but only target is not 3D"
+        args.propagation_dist = np.linspace(args.propagation_dist[0], args.propagation_dist[1], num=target_wf.depth)
 
     if args.propagation_model == 'FourierFresnel':
         propagator = opt.FourierFresnelPropagator(args.lens_radius, args.lens_focal_length, args.wavelength, args.pixel_pitch, args.propagation_dist)
