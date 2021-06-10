@@ -27,7 +27,7 @@ class ArgParser():
         self.p.add_argument('--optimize_resolution', type=str2bool, nargs='?', default=False, help='')
         self.p.add_argument('--output_path', type=str, default='./output/', help='')
         self.p.add_argument('--method', type=str, default='bin_amp_phase_GS', help='',
-                            choices=['bin_amp_phase_gs', 'bin_amp_amp_gs', 'bin_amp_phase_sgd', 'bin_amp_amp_sgd',
+                            choices=['bin_amp_phase_mgsa', 'bin_amp_amp_mgsa', 'bin_amp_phase_sgd', 'bin_amp_amp_sgd',
                                      'bin_amp_amp_sig_sgd'], )
         self.p.add_argument('--comment', type=str, default='', help='')
 

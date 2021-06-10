@@ -10,7 +10,7 @@ from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import write_summary, assert_phase_unchanged
 
 
-def bin_amp_phase_gs(start_wf, target_amplitude, propagator, writer, context) -> opt.Wavefront:
+def bin_amp_phase_mgsa(start_wf, target_amplitude, propagator, writer, context) -> opt.Wavefront:
     """Technically not the original Gercherberg-Saxton algorithm as not restricted to Fourier propagation"""
 
     holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amplitude.shape[1])  #  optimize hologram stack
@@ -22,7 +22,7 @@ def bin_amp_phase_gs(start_wf, target_amplitude, propagator, writer, context) ->
         recon_wf = propagator.forward(holo_wf)
 
         if not iter % context.summary_freq:
-            logging.info("GS iteration {}/{}".format(iter, context.iterations))
+            logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, scale_loss=context.scale_loss, show_holo="none")
 
         recon_wf.amplitude = target_amplitude
@@ -41,7 +41,7 @@ def bin_amp_phase_gs(start_wf, target_amplitude, propagator, writer, context) ->
     return holo_wf
 
 
-def bin_amp_amp_gs(start_wf, target_amplitude, propagator, writer, context) -> opt.Wavefront:
+def bin_amp_amp_mgsa(start_wf, target_amplitude, propagator, writer, context) -> opt.Wavefront:
     holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amplitude.shape[1])
     if context.random_holo_init:
         holo_wf.set_random_amplitude()
@@ -50,7 +50,7 @@ def bin_amp_amp_gs(start_wf, target_amplitude, propagator, writer, context) -> o
         recon_wf = propagator.forward(holo_wf)
 
         if not iter % context.summary_freq:
-            logging.info("GS iteration {}/{}".format(iter, context.iterations))
+            logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, scale_loss=context.scale_loss, show_holo="none")
 
         recon_wf.amplitude = target_amplitude
