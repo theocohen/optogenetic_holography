@@ -37,7 +37,7 @@ class ArgParser():
         self.p.add_argument('--start_wf_phases', type=str, choices=['flat', 'random'], default='flat', help='')
         self.p.add_argument('--wavelength', type=float, default=488, help='unit: nm')
         self.p.add_argument('--pixel_pitch', type=float, default=10, help='unit: um')
-        self.p.add_argument('--propagation_model', type=str, default='FourierFresnel', choices=['FourierFresnel', 'Fresnel'],
+        self.p.add_argument('--propagation_model', type=str, default='FourierFresnel', choices=['FourierFresnel', 'Fresnel', 'Fourier'],
                        help='')
         self.p.add_argument('--propagation_dist', type=float, nargs='+', default=10,
                        help='Scalar or [start, end] from which linear space will be constructed. unit: cm')

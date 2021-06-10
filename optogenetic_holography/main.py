@@ -31,17 +31,20 @@ def main():
         args.propagation_dist = np.linspace(args.propagation_dist[0], args.propagation_dist[1], num=target_wf.depth)
     args.propagation_dist *= opt.cm
 
-    if args.propagation_model == 'FourierFresnel':
-        propagator = opt.FourierFresnelPropagator(args.lens_radius, args.lens_focal_length, args.wavelength, args.pixel_pitch, args.propagation_dist)
-    if args.propagation_model == 'Fresnel':
-        propagator = opt.FresnelPropagator(args.wavelength, args.pixel_pitch, args.propagation_dist)
-
     # Tensorboard writer
     dim = '3D' if target_wf.depth > 1 else '2D'
     run_dir = f"{args.propagation_model}/{dim}/{args.method}"
     writer, summary_dir = init_writer(args.output_path, run_dir, setup=args.comment)
     if args.config_path:
         copy2(args.config_path, os.path.join(summary_dir, 'config.txt'))  # copy config file to summary directory
+
+    if args.propagation_model == 'FourierFresnel':
+        propagator = opt.FourierFresnelPropagator(args.lens_radius, args.lens_focal_length, args.wavelength, args.pixel_pitch, args.propagation_dist)
+    if args.propagation_model == 'Fresnel':
+        propagator = opt.FresnelPropagator(args.wavelength, args.pixel_pitch, args.propagation_dist)
+    if args.propagation_model == 'Fourier':
+        assert dim == '2D', "Fourier model can only be used for single plane target"
+        propagator = opt.FourierLensPropagator(args.lens_radius, args.lens_focal_length)
 
     # setting logger format
     config_logger(summary_dir, run_dir)
