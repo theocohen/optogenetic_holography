@@ -6,7 +6,7 @@ import logging
 from shutil import copy2
 
 import numpy as np
-from torch import nn
+import torch
 
 from optogenetic_holography.arg_parser import ArgParser
 from optogenetic_holography.optics import optics_backend as opt
@@ -17,9 +17,12 @@ import optogenetic_holography.algorithms as algorithms
 def main():
     args, param_groups = ArgParser().parse_all_args()
 
+    # GPU
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
     # Init wavefronts
-    target_wf = opt.Wavefront.from_images(args.target_path, optimize_resolution=args.optimize_resolution, padding=args.padding, scale_intensity=args.target_wf_intensity)
-    start_wf = opt.Wavefront(target_wf.resolution, roi=target_wf.roi, scale_intensity=args.start_wf_intensity)
+    target_wf = opt.Wavefront.from_images(args.target_path, optimize_resolution=args.optimize_resolution, padding=args.padding, scale_intensity=args.target_wf_intensity, device=device)
+    start_wf = opt.Wavefront(target_wf.resolution, roi=target_wf.roi, scale_intensity=args.start_wf_intensity, device=device)
     if args.start_wf_phases == 'random':
         start_wf = opt.RandomPhaseMask().forward(start_wf)
 
@@ -42,12 +45,12 @@ def main():
 
     # setting logger format
     config_logger(summary_dir, run_dir)
+    logging.info(f'PyTorch device: {device}')
 
-    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  #todo
     def vectorised_loss(input, target):
-        return nn.MSELoss(reduction='none')(input, target).mean(dim=(1, 2, 3), keepdim=False)
-    loss_fn = nn.MSELoss() if args.average_batch_grads else vectorised_loss
-    param_groups['method_params'].loss_fn = loss_fn
+        return torch.nn.MSELoss(reduction='none')(input, target).mean(dim=(1, 2, 3), keepdim=False)
+    loss_fn = torch.nn.MSELoss() if args.average_batch_grads else vectorised_loss
+    param_groups['method_params'].loss_fn = loss_fn.to(device)
 
     # methods
     generator = getattr(algorithms, args.method)

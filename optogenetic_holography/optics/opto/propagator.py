@@ -64,7 +64,7 @@ class FresnelPropagator(Propagator):
             f_y, f_x = torch.meshgrid(f_x, f_y)
 
             H_exp = k - np.pi * self.wavelength * (f_x ** 2 + f_y ** 2)
-            self.precomputed_H = torch.exp(1j * H_exp * self.z)
+            self.precomputed_H = torch.exp(1j * H_exp * self.z).to(wf.device)
 
         propagated_wf = wf.copy()
         propagated_wf.depth = self.z.shape[1]
