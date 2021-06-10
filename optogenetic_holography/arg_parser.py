@@ -39,7 +39,7 @@ class ArgParser():
         self.p.add_argument('--pixel_pitch', type=float, default=10, help='unit: um')
         self.p.add_argument('--propagation_model', type=str, default='FourierFresnel', choices=['FourierFresnel', 'Fresnel', 'Fourier'],
                        help='')
-        self.p.add_argument('--propagation_dist', type=float, nargs='+', default=10,
+        self.p.add_argument('--propagation_dist', type=float, nargs='+', default=10.0,
                        help='Scalar or [start, end] from which linear space will be constructed. unit: cm')
         self.p.add_argument('--lens_radius', type=float, default=6, help='unit: mm')
         self.p.add_argument('--lens_focal_length', type=float, default=20, help='unit: cm')
@@ -72,8 +72,8 @@ class ArgParser():
         args.lens_radius = args.lens_radius * opt.mm
         args.lens_focal_length = args.lens_radius * opt.cm
 
-        if isinstance(args.propagation_dist, list) and len(args.propagation_dist) != 2:
-            self.p.error('--prop_dist either accepts a scalar or list of the form [start, stop].')
+        if len(args.propagation_dist) > 2:
+            self.p.error('--prop_dist either accepts one distance or a tuple of the form [start, stop].')
         return args
 
     def parse_all_args(self):
