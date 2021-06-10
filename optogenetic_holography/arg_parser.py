@@ -58,6 +58,7 @@ class ArgParser():
         g.add_argument('--scale_loss', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--average_batch_grads', type=bool, default=True, help='')
         g.add_argument('--summary_freq', type=int, default=10, help='')
+        g.add_argument('--write_all_planes', type=str2bool, nargs='?', default=False, help='')
 
     def _add_logging_params(self):
         g = self.p.add_argument_group('plot_params', '')
@@ -75,6 +76,7 @@ class ArgParser():
 
         if len(args.propagation_dist) > 2:
             self.p.error('--prop_dist either accepts one distance or a tuple of the form [start, stop].')
+            self.p.error('--prop_dist either accepts one distance or a tuple of the form [start, stop].')
         args.propagation_dist = np.array(args.propagation_dist) * opt.cm
 
         return args
@@ -91,4 +93,5 @@ class ArgParser():
         for group in self.p._action_groups:
             if group.title in ['method_params', 'plot_params']:
                 param_groups[group.title] = configargparse.Namespace(**{a.dest: getattr(args, a.dest, None) for a in group._group_actions})
+
         return args, param_groups

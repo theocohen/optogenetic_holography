@@ -23,7 +23,7 @@ def bin_amp_phase_mgsa(start_wf, target_amplitude, propagator, writer, context) 
 
         if not iter % context.summary_freq:
             logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, scale_loss=context.scale_loss, show_holo="none")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, scale_loss=context.scale_loss, show_holo='none', all_planes=context.write_all_planes)
 
         recon_wf.amplitude = target_amplitude
         #holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=1, keepdim=True)  # in-loop mean
@@ -36,7 +36,7 @@ def bin_amp_phase_mgsa(start_wf, target_amplitude, propagator, writer, context) 
     #holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)
 
     recon_wf = propagator.forward(holo_wf)
-    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, scale_loss=context.scale_loss, show_holo="none")
+    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, scale_loss=context.scale_loss, show_holo='none', all_planes=context.write_all_planes)
 
     return holo_wf
 
@@ -51,7 +51,7 @@ def bin_amp_amp_mgsa(start_wf, target_amplitude, propagator, writer, context) ->
 
         if not iter % context.summary_freq:
             logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, scale_loss=context.scale_loss, show_holo="none")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, scale_loss=context.scale_loss, show_holo='none', all_planes=context.write_all_planes)
 
         recon_wf.amplitude = target_amplitude
         holo_wf.amplitude = propagator.backward(recon_wf).amplitude
@@ -61,7 +61,7 @@ def bin_amp_amp_mgsa(start_wf, target_amplitude, propagator, writer, context) ->
     holo_wf.polar_to_rect(from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=1, keepdim=True), method=context.bin_amp_mod), start_wf.phase)
 
     recon_wf = propagator.forward(holo_wf)
-    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, scale_loss=context.scale_loss, show_holo="none")
+    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, scale_loss=context.scale_loss, show_holo='none', all_planes=context.write_all_planes)
 
     return holo_wf
 
@@ -96,7 +96,7 @@ def phase_sgd(start_wf, target_amplitude, propagator, writer, context) -> opt.Wa
         if not iter % context.summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss}, lr {lr}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, show_holo="none")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, show_holo='none', all_planes=context.write_all_planes)
 
     return holo_wf
 
@@ -131,7 +131,7 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, writer, context) -
         if not iter % context.summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss}, lr {lr}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=context.lr, show_holo="none")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=context.lr, show_holo='none', all_planes=context.write_all_planes)
 
     with torch.no_grad():
         holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)
@@ -139,7 +139,7 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, writer, context) -
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if context.scale_loss else recon_wf.amplitude
         loss = context.loss_fn(recon_amp[recon_wf.roi], target_amplitude[recon_wf.roi])
-        write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, loss=loss, lr=lr, show_holo="none")
+        write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, loss=loss, lr=lr, show_holo='none', all_planes=context.write_all_planes)
     return holo_wf
 
 
@@ -180,7 +180,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context) -> 
         if not iter % context.summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss}, lr {lr}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, show_holo="none")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, show_holo="none", all_planes=context.write_all_planes)
 
     with torch.no_grad():
         holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method=context.bin_amp_mod)
@@ -188,7 +188,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context) -> 
         recon_wf = propagator.forward(holo_wf)
         recon_amp = recon_wf.amplitude / recon_wf.amplitude.max() if context.scale_loss else recon_wf.amplitude
         loss = mse_loss(recon_amp[recon_wf.roi], target_amplitude[recon_wf.roi])
-        write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, loss=loss, lr=lr, show_holo='none')
+        write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, loss=loss, lr=lr, show_holo='none', all_planes=context.write_all_planes)
     return holo_wf
 
 
@@ -232,7 +232,7 @@ def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, writer, context)
         if not iter % context.summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss}, lr {lr}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, show_holo="none")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, loss=loss, lr=lr, show_holo='none', all_planes=context.write_all_planes)
 
     with torch.no_grad():
         holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method="otsu")
