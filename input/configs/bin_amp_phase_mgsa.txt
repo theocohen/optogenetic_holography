@@ -1,0 +1,14 @@
+method = bin_amp_phase_mgsa
+target_path = ./input/digits/*.jpg
+padding = [50, 700, 50, 700]
+optimize_resolution = False
+
+start_wf_phases = flat
+propagation_model = FourierFresnel
+propagation_dist = [-5, 5]
+ta_batch = 1
+iterations = 10
+random_holo_init = True
+
+summary_freq = 1
+threshold_foreground = False
