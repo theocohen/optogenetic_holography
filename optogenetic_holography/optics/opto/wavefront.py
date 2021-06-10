@@ -11,15 +11,16 @@ plt.style.use('dark_background')
 
 
 class Wavefront:
-    def __init__(self, resolution, depth=1, batch=1, roi=None, scale_intensity=1):
+    def __init__(self, resolution, depth=1, batch=1, roi=None, scale_intensity=1, device='cpu'):
         assert len(resolution) == 2
         self.resolution = resolution
         self.shape = (batch, depth,) + resolution
-        self.u = torch.ones(self.shape, dtype=torch.complex128) * np.sqrt(scale_intensity)
+        self.u = torch.ones(self.shape, dtype=torch.complex128).to(device) * scale_intensity ** (1/2)
         self.roi = roi if roi is not None else (slice(None),) * 4
+        self.device = device
 
     @classmethod
-    def from_images(cls, path, intensity=True, scale_intensity=1, padding=[0], optimize_resolution=True):
+    def from_images(cls, path, intensity=True, scale_intensity=1, padding=[0], optimize_resolution=True, device='cpu'):
         """assumes all image are of same shape"""
         images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(path))])
 
@@ -31,7 +32,7 @@ class Wavefront:
             resolution = 2 ** np.ceil(np.log2(resolution))  # powers of 2 for optimized FFT
             resolution = (int(resolution[0]), int(resolution[1]))
 
-        wf = Wavefront(resolution, depth=images.shape[0])
+        wf = Wavefront(resolution, depth=images.shape[0], device=device)
         wf.roi = slice(None), slice(None), slice(padding[0], padding[0] + images.shape[1]), slice(padding[2], padding[2] + images.shape[2])
         padded_images = np.zeros(images.shape[:1] + resolution, dtype=np.uint8)
         padded_images[wf.roi[1:]] = images
@@ -75,7 +76,7 @@ class Wavefront:
 
     @amplitude.setter
     def amplitude(self, new_amplitude):
-        self.u = torch.polar(new_amplitude.broadcast_to(self.shape), self.phase)
+        self.u = torch.polar(new_amplitude.broadcast_to(self.shape), self.phase).to(self.device)
 
     def set_random_amplitude(self):
         self.amplitude = torch.rand(self.shape).double()
@@ -89,7 +90,7 @@ class Wavefront:
 
     @phase.setter
     def phase(self, new_phase):
-        self.u = torch.polar(self.amplitude, new_phase.broadcast_to(self.shape))
+        self.u = torch.polar(self.amplitude, new_phase.broadcast_to(self.shape)).to(self.device)
 
     @property
     def intensity(self):
@@ -97,7 +98,7 @@ class Wavefront:
 
     @intensity.setter
     def intensity(self, new_intensity):
-        self.amplitude = torch.sqrt(new_intensity).broadcast_to(self.shape)
+        self.amplitude = torch.sqrt(new_intensity).broadcast_to(self.shape).to(self.device)
 
     @property
     def total_intensity(self):
@@ -109,7 +110,7 @@ class Wavefront:
 
     def polar_to_rect(self, amp, phase):
         """from neural holo"""
-        self.u = torch.complex(amp * torch.cos(phase), amp * torch.sin(phase)).broadcast_to(self.shape)
+        self.u = torch.complex(amp * torch.cos(phase), amp * torch.sin(phase)).broadcast_to(self.shape).to(self.device)
 
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
@@ -172,7 +173,7 @@ class Wavefront:
     def copy(self, copy_u=False, batch=None, depth=None):
         depth = self.depth if depth is None else depth
         batch = self.batch if batch is None else batch
-        copy_wf = Wavefront(self.resolution, depth=depth, batch=batch, roi=self.roi)
+        copy_wf = Wavefront(self.resolution, depth=depth, batch=batch, roi=self.roi, device=self.device)
         if copy_u:
             copy_wf.u = self.u.broadcast_to(copy_wf.shape)
         return copy_wf
