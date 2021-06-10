@@ -27,9 +27,8 @@ def main():
         start_wf = opt.RandomPhaseMask().forward(start_wf)
 
     # propagation model
-    if isinstance(args.propagation_dist, list):
+    if len(args.propagation_dist) == 2:
         args.propagation_dist = np.linspace(args.propagation_dist[0], args.propagation_dist[1], num=target_wf.depth)
-    args.propagation_dist *= opt.cm
 
     # Tensorboard writer
     dim = '3D' if target_wf.depth > 1 else '2D'

@@ -1,4 +1,5 @@
 import configargparse
+import numpy as np
 
 from optogenetic_holography.optics import optics_backend as opt
 
@@ -74,6 +75,8 @@ class ArgParser():
 
         if len(args.propagation_dist) > 2:
             self.p.error('--prop_dist either accepts one distance or a tuple of the form [start, stop].')
+        args.propagation_dist = np.array(args.propagation_dist) * opt.cm
+
         return args
 
     def parse_all_args(self):
