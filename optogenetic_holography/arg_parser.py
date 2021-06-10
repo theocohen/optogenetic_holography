@@ -63,7 +63,7 @@ class ArgParser():
         g.add_argument('--remove_airy_disk', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--crop_roi',type=str2bool, nargs='?', default=True, help='')
         g.add_argument('--cmap', type=str, default='gray', help='')
-        g.add_argument('--normalise_int', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--normalise_plot', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--threshold_foreground', type=str2bool, nargs='?', default=True, help='')
 
     def _adjust_units(self, args):

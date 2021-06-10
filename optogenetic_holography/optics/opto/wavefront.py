@@ -3,6 +3,7 @@ import glob
 import cv2
 import torch
 import matplotlib.pyplot as plt
+from matplotlib import colors
 import numpy as np
 from skimage import filters
 plt.style.use('dark_background')
@@ -119,20 +120,18 @@ class Wavefront:
         if type == 'intensity':
             img = self.intensity
             if options.remove_airy_disk:
-                img[:, self.resolution[0] // 2, self.resolution[1] // 2] = 0
-            if options.normalise_int:
-                img = self.intensity / self.intensity.max()
+                img[:, :, self.resolution[0] // 2, self.resolution[1] // 2] = 0
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
-
         if options.crop_roi and self.roi is not None:
             img = img[self.roi]
+        norm = colors.NoNorm() if options.normalise_plot else None  # fixme NoNorm different from Normalize
         if options.threshold_foreground:
             img = (img > filters.threshold_otsu(img))
 
         for t in range(self.batch):
             for d in range(self.depth):
-                plt.imshow(img[t][d], cmap=options.cmap)
+                plt.imshow(img[t][d], cmap=options.cmap, norm=norm)
                 plt.xticks([]), plt.yticks([])
                 plt.savefig(f"{dir}/{title}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0)
                 plt.close()
