@@ -23,7 +23,7 @@ class ArgParser():
 
     def _add_io_args(self):
         self.p.add_argument('--target_path', required=True, type=str, help='')
-        self.p.add_argument('--padding', type=int, nargs='+', default=0, help='Scalar or [left, right, top, bottom]')
+        self.p.add_argument('--padding', type=int, nargs='+', default=[0], help='Scalar or [left, right, top, bottom]')
         self.p.add_argument('--optimize_resolution', type=str2bool, nargs='?', default=False, help='')
         self.p.add_argument('--output_path', type=str, default='./output/', help='')
         self.p.add_argument('--method', type=str, default='bin_amp_phase_GS', help='',
