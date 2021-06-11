@@ -67,7 +67,7 @@ def bin_amp_amp_mgsa(start_wf, target_amplitude, propagator, writer, context) ->
 
 
 def phase_sgd(start_wf, target_amplitude, propagator, writer, context) -> opt.Wavefront:
-    holo_wf = start_wf.copy(copy_u=True)
+    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch)
     if context.random_holo_init:
         holo_wf.set_random_phase()
 
@@ -102,7 +102,7 @@ def phase_sgd(start_wf, target_amplitude, propagator, writer, context) -> opt.Wa
 
 
 def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, writer, context) -> opt.Wavefront:
-    holo_wf = start_wf.copy(copy_u=True)
+    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch)
     if context.random_holo_init:
         holo_wf.set_random_phase()
 
@@ -162,7 +162,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context) -> 
         amplitude = torch.exp(log_amplitude)
         holo_wf.polar_to_rect(amplitude, start_wf.phase)
 
-        assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True)  # comment for perf
+        #assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True)  # comment for perf
 
         recon_wf = propagator.forward(holo_wf)
 
@@ -194,7 +194,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context) -> 
 
 def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, writer, context) -> opt.Wavefront:
     # fixme
-    holo_wf = start_wf.copy(copy_u=True)
+    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch)
     if context.random_holo_init:
         holo_wf.set_random_amplitude()
 
@@ -215,7 +215,7 @@ def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, writer, context)
 
         holo_wf.polar_to_rect(bin_amp, start_wf.phase)
 
-        assert_phase_unchanged(bin_amp, holo_wf, start_wf, just_check_first=True)  # comment for perf
+        #assert_phase_unchanged(bin_amp, holo_wf, start_wf, just_check_first=True)  # comment for perf
 
         recon_wf = propagator.forward(holo_wf)
 
