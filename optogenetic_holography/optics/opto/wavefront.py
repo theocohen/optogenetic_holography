@@ -116,14 +116,14 @@ class Wavefront:
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
 
-    def plot(self, dir, options, type='intensity', title=''):
+    def plot(self, dir, options, type='intensity', title='', is_holo=False):
         if type == 'intensity':
             img = self.intensity
             if options.remove_airy_disk:
                 img[:, :, self.resolution[0] // 2, self.resolution[1] // 2] = 0
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
-        if options.crop_roi and self.roi is not None:
+        if not is_holo and options.crop_roi and self.roi is not None:
             img = img[self.roi]
         norm = colors.NoNorm() if options.normalise_plot else None  # fixme NoNorm different from Normalize
         if options.threshold_foreground:

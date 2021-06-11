@@ -65,7 +65,7 @@ def main():
     logging.info("Starting")
 
     holo_wf = generator(start_wf, target_wf.amplitude, propagator, writer, param_groups['method_params'])
-    holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo')
+    holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo', is_holo=True)
 
     recon_wf_stack = propagator.forward(holo_wf)
     plot_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude, all_planes=param_groups['method_params'].write_all_planes)

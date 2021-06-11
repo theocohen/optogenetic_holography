@@ -32,12 +32,12 @@ class FourierLensPropagator(Propagator):
 
     def forward(self, wf) -> Wavefront:
         propagated_wf = wf.copy()
-        propagated_wf.u = torch.fft.fftshift(torch.fft.fft2(wf.u, norm="ortho"))
+        propagated_wf.u = torch.fft.fftshift(torch.fft.fft2(wf.u, norm="ortho"), dim=(-2, -1))
         return propagated_wf
 
     def backward(self, wf) -> Wavefront:
         propagated_wf = wf.copy()
-        propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(wf.u), norm="ortho")
+        propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(wf.u, dim=(-2, -1)), norm="ortho")
         return propagated_wf
 
 class FresnelPropagator(Propagator):
@@ -64,18 +64,19 @@ class FresnelPropagator(Propagator):
             f_y, f_x = torch.meshgrid(f_x, f_y)
 
             H_exp = k - np.pi * self.wavelength * (f_x ** 2 + f_y ** 2)
+            H_exp = H_exp.reshape(1, 1, H_exp.shape[0], H_exp.shape[1])
             self.precomputed_H = torch.exp(1j * H_exp.float() * self.z).to(wf.device)
 
         propagated_wf = wf.copy()
         propagated_wf.depth = self.z.shape[1]
-        G = torch.fft.fftshift(torch.fft.fft2(wf.u, norm='ortho'))
-        propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(G * self.precomputed_H), norm='ortho')
+        G = torch.fft.fftshift(torch.fft.fft2(wf.u, norm='ortho'), dim=(-2, -1))
+        propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(G * self.precomputed_H, dim=(-2, -1)), norm='ortho')
         return propagated_wf
 
     def backward(self, wf) -> Wavefront:
         propagated_wf = wf.copy()
-        G = torch.fft.fftshift(torch.fft.fft2(wf.u, norm='ortho'))
-        propagated_wf.u = (torch.fft.ifft2(torch.fft.ifftshift(G / self.precomputed_H), norm='ortho')) # inverse kernel
+        G = torch.fft.fftshift(torch.fft.fft2(wf.u, norm='ortho'), dim=(-2, -1))
+        propagated_wf.u = (torch.fft.ifft2(torch.fft.ifftshift(G / self.precomputed_H, dim=(-2, -1)), norm='ortho')) # inverse kernel
         return propagated_wf
 
 class RandomPhaseMask(Propagator):
