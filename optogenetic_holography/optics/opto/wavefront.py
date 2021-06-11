@@ -16,7 +16,7 @@ class Wavefront:
         assert len(resolution) == 2
         self.resolution = resolution
         self.shape = (batch, depth,) + resolution
-        self.u = torch.ones(self.shape, dtype=torch.complex128).to(device) * scale_intensity ** (1/2)
+        self.u = torch.ones(self.shape, dtype=torch.complex64).to(device) * scale_intensity ** (1/2)
         self.roi = roi if roi is not None else (slice(None),) * 4
         self.device = device
 
@@ -39,7 +39,7 @@ class Wavefront:
         padded_images[wf.roi[1:]] = images
 
         if intensity:
-            wf.intensity = torch.tensor(padded_images * scale_intensity).double()
+            wf.intensity = torch.tensor(padded_images * scale_intensity).float()
             wf.amplitude /= wf.amplitude.amax(dim=(2, 3), keepdim=True)
         else:
             wf.phase = torch.tensor(padded_images)
@@ -80,14 +80,14 @@ class Wavefront:
         self.u = torch.polar(new_amplitude.broadcast_to(self.shape).to(self.device), self.phase)
 
     def set_random_amplitude(self):
-        self.amplitude = torch.rand(self.shape).double()
+        self.amplitude = torch.rand(self.shape).float()
 
     @property
     def phase(self):
         return self.u.angle()
 
     def set_random_phase(self):
-        self.phase = (np.pi * (1 - 2 * torch.rand(self.shape))).double()  # between -pi to pi
+        self.phase = (np.pi * (1 - 2 * torch.rand(self.shape))).float()  # between -pi to pi
 
     @phase.setter
     def phase(self, new_phase):

@@ -46,7 +46,7 @@ class FresnelPropagator(Propagator):
         self.wavelength = wavelength
         self.pixel_pitch = pixel_pitch
         z = torch.tensor([z]) if not torch.is_tensor(z) else z
-        self.z = z.reshape((1, -1, 1, 1))
+        self.z = z.reshape((1, -1, 1, 1)).float()
         self.precomputed_H = None
 
     def forward(self, wf) -> Wavefront:
@@ -64,7 +64,7 @@ class FresnelPropagator(Propagator):
             f_y, f_x = torch.meshgrid(f_x, f_y)
 
             H_exp = k - np.pi * self.wavelength * (f_x ** 2 + f_y ** 2)
-            self.precomputed_H = torch.exp(1j * H_exp * self.z).to(wf.device)
+            self.precomputed_H = torch.exp(1j * H_exp.float() * self.z).to(wf.device)
 
         propagated_wf = wf.copy()
         propagated_wf.depth = self.z.shape[1]
@@ -83,7 +83,7 @@ class RandomPhaseMask(Propagator):
     def forward(self, wf) -> Wavefront:
         masked_wf = wf.copy()
         masked_wf.amplitude = wf.amplitude
-        masked_wf.phase = np.pi * (1 - 2 * torch.rand(wf.resolution)).double()  # between -pi to pi
+        masked_wf.phase = np.pi * (1 - 2 * torch.rand(wf.resolution)).float()  # between -pi to pi
         return masked_wf
 
     def backward(self, wf) -> Wavefront:

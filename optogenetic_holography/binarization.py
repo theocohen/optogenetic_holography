@@ -6,14 +6,14 @@ from optogenetic_holography.optics import optics_backend as opt
 
 
 def from_phase_to_bin_amp(holo_phase):
-    return (holo_phase > 0).double()
-    #return ((holo_wf.phase > - np.pi/2) & (holo_wf.phase < np.pi/2)).double()
+    return (holo_phase > 0).float()
+    #return ((holo_wf.phase > - np.pi/2) & (holo_wf.phase < np.pi/2)).float()
 
 
 def from_amp_to_bin_amp(holo_amp, method="mean"):
     """
     if method == "mean":
-        return (holo_wf.amplitude > holo_wf.amplitude.mean()).double()
+        return (holo_wf.amplitude > holo_wf.amplitude.mean()).float()
     elif method == "none":
         return holo_wf.amplitude
     """
@@ -45,6 +45,6 @@ def from_amp_to_bin_amp(holo_amp, method="mean"):
     #for img in img_stack:
     #    thresholds.append(threshold_method(img))
     #thresholds = torch.Tensor(thresholds).unsqueeze(1)
-    #return (holo_Wf.amplitude > thresholds).double()
+    #return (holo_Wf.amplitude > thresholds).float()
     amp = opt.Wavefront.to_numpy(holo_amp)
-    return (holo_amp > threshold_method(amp)).double()
+    return (holo_amp > threshold_method(amp)).float()
