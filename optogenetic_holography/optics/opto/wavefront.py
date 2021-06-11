@@ -119,8 +119,6 @@ class Wavefront:
     def plot(self, dir, options, type='intensity', title='', is_holo=False):
         if type == 'intensity':
             img = self.intensity
-            if options.remove_airy_disk:
-                img[:, :, self.resolution[0] // 2, self.resolution[1] // 2] = 0
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
         if not is_holo and options.crop_roi and self.roi is not None:

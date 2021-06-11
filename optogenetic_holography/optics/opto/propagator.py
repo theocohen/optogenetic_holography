@@ -10,8 +10,8 @@ class FourierFresnelPropagator(Propagator):
     #Assumes propagates through lens, from a distance d=f to lens and to focal length from lens.
     #   Then, we use Fresnel propagation for the remaining short distance z
 
-    def __init__(self, radius, focal_length, wavelength, pixel_pitch, z):
-        self.fourier_lens_propagator = FourierLensPropagator(radius, focal_length)
+    def __init__(self, radius, focal_length, wavelength, pixel_pitch, z, remove_airy_disk=False):
+        self.fourier_lens_propagator = FourierLensPropagator(radius, focal_length, remove_airy_disk=remove_airy_disk)
         self.fresnel_propagator = FresnelPropagator(wavelength, pixel_pitch, z)
 
     def forward(self, wf):
@@ -22,17 +22,18 @@ class FourierFresnelPropagator(Propagator):
         return self.fourier_lens_propagator.backward(
                self.fresnel_propagator.backward(wf))
 
-
-
 class FourierLensPropagator(Propagator):
     """ FIXME """
 
-    def __init__(self, radius, focal_length):
+    def __init__(self, radius, focal_length, remove_airy_disk=False):
+        self.remove_airy_disk = remove_airy_disk
         pass
 
     def forward(self, wf) -> Wavefront:
         propagated_wf = wf.copy()
         propagated_wf.u = torch.fft.fftshift(torch.fft.fft2(wf.u, norm="ortho"), dim=(-2, -1))
+        if self.remove_airy_disk:
+            propagated_wf.u[:, :, propagated_wf.resolution[0] // 2, propagated_wf.resolution[1] // 2] = 0
         return propagated_wf
 
     def backward(self, wf) -> Wavefront:

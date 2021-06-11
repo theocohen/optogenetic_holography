@@ -39,12 +39,12 @@ def main():
         args.propagation_dist = np.linspace(args.propagation_dist[0], args.propagation_dist[1], num=target_wf.depth)
 
     if args.propagation_model == 'FourierFresnel':
-        propagator = opt.FourierFresnelPropagator(args.lens_radius, args.lens_focal_length, args.wavelength, args.pixel_pitch, args.propagation_dist)
+        propagator = opt.FourierFresnelPropagator(args.lens_radius, args.lens_focal_length, args.wavelength, args.pixel_pitch, args.propagation_dist, remove_airy_disk=args.remove_airy_disk)
     if args.propagation_model == 'Fresnel':
         propagator = opt.FresnelPropagator(args.wavelength, args.pixel_pitch, args.propagation_dist)
     if args.propagation_model == 'Fourier':
         assert dim == '2D', "Fourier model can only be used for single plane target"
-        propagator = opt.FourierLensPropagator(args.lens_radius, args.lens_focal_length)
+        propagator = opt.FourierLensPropagator(args.lens_radius, args.lens_focal_length, remove_airy_disk=args.remove_airy_disk)
 
     # setting logger format
     config_logger(summary_dir, run_dir)

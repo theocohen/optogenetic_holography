@@ -44,6 +44,7 @@ class ArgParser():
                        help='Scalar or [start, end] from which linear space will be constructed. unit: cm')
         self.p.add_argument('--lens_radius', type=float, default=6, help='unit: mm')
         self.p.add_argument('--lens_focal_length', type=float, default=20, help='unit: cm')
+        self.p.add_argument('--remove_airy_disk', type=str2bool, nargs='?', default=False, help='')
 
     def _add_method_params(self):
         g = self.p.add_argument_group('method_params', '')
@@ -62,7 +63,6 @@ class ArgParser():
 
     def _add_logging_params(self):
         g = self.p.add_argument_group('plot_params', '')
-        g.add_argument('--remove_airy_disk', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--crop_roi',type=str2bool, nargs='?', default=True, help='')
         g.add_argument('--cmap', type=str, default='gray', help='')
         g.add_argument('--normalise_plot', type=str2bool, nargs='?', default=False, help='')
