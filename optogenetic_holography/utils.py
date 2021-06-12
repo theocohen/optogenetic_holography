@@ -63,9 +63,9 @@ def assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True):
             assert phase_shift[i] < 1e-9, f'index:{i}, diff:{d}, phase_holo:{holo_wf.phase.flatten()[i]}, phase_start:{start_wf.phase.flatten()[i]}, amp_optim:{amplitude.flatten()[i]}, amp_holo:{holo_wf.amplitude.flatten()[i]}. amp_start:{start_wf.amplitude.flatten()[i]}'
 
 
-def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, prefix='Iterations', scale_loss=False, show_holo="none", plane_idx=0, batch_idx=0, all_planes=False):
+def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, lr=None, prefix='Iterations', show_holo="none", plane_idx=0, batch_idx=0):
 
-    if all_planes:
+    if context.write_all_planes:
         writer.add_images(f'{prefix}/Reconstructed intensities', np.expand_dims(recon_wf.intensity[recon_wf.roi][batch_idx], axis=1), iter, dataformats='NCHW')
     else:
         writer.add_image(f'{prefix}/Reconstructed intensity', recon_wf.intensity[recon_wf.roi][batch_idx][plane_idx], iter, dataformats='HW')
@@ -75,24 +75,24 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, loss=None, lr=None, 
     if show_holo == "both" or show_holo == "phase":
         writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
 
-    loss = loss if loss is not None else (mse_loss(recon_wf.scaled_amplitude.detach()[recon_wf.roi][batch_idx], target_amp[recon_wf.roi]) if scale_loss else mse_loss(recon_wf.amplitude.detach()[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]))
-
+    loss = loss if loss is not None else context.loss_fn(recon_wf, target_amp)
     writer.add_scalar(f'{prefix}/Loss', loss, iter)
-    writer.add_scalar(f'{prefix}/ssim', ssim(recon_wf.scaled_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)  # scaling to avoid error
-    writer.add_scalar(f'{prefix}/psnr', psnr(recon_wf.scaled_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)
+
+    writer.add_scalar(f'{prefix}/ssim', ssim(recon_wf.normalised_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)  # scaling to avoid error
+    writer.add_scalar(f'{prefix}/psnr', psnr(recon_wf.normalised_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)
 
     if lr: writer.add_scalar(f'{prefix}/lr', lr, iter)
 
 
-def plot_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, all_planes):
+def plot_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context):
     prefix = 'Time multiplexing'
     for t in range(0, recon_wf_stack.batch):  # fixme redundant computation
         recon_wf = recon_wf_stack.time_average(t_end=t+1)
-        if all_planes:
+        if context.write_all_planes:
             writer.add_images(f'{prefix}/TA Intensity sequence', np.expand_dims(recon_wf.intensity[recon_wf.roi][0], axis=1), t, dataformats='NCHW')
         else:
             writer.add_image(f'{prefix}/TA Intensity sequence', recon_wf.intensity[recon_wf.roi][0][0], t, dataformats='HW')
 
-        writer.add_scalar(f'{prefix}/MSE', mse_loss(recon_wf.amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
-        writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.scaled_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
-        writer.add_scalar(f'{prefix}/PSNR', psnr(recon_wf.scaled_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
+        writer.add_scalar(f'{prefix}/MSE', context.loss_fn(recon_wf, target_amp), t)
+        writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
+        writer.add_scalar(f'{prefix}/PSNR', psnr(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)

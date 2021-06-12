@@ -72,8 +72,8 @@ class Wavefront:
         return self.u.abs()
 
     @property
-    def scaled_amplitude(self):
-        return self.amplitude / self.amplitude.amax(dim=(2,3), keepdim=True)
+    def normalised_amplitude(self):
+        return self.amplitude / self.amplitude.max()
 
     @amplitude.setter
     def amplitude(self, new_amplitude):

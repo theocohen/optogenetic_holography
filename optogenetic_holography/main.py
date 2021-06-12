@@ -60,7 +60,7 @@ def main():
     loss_fn = torch.nn.MSELoss() if args.average_batch_grads else vectorised_loss
     """
     mask = load_mask(args.target_mask_path, device)
-    loss_fn = MSE(mask=mask, average_batch_grads=args.average_batch_grads)
+    loss_fn = MSE(mask=mask, average_batch_grads=args.average_batch_grads, normalise_recon=args.normalise_recon)
     param_groups['method_params'].loss_fn = loss_fn.to(device)
 
     # methods
@@ -74,7 +74,7 @@ def main():
     holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo', is_holo=True)
 
     recon_wf_stack = propagator.forward(holo_wf)
-    plot_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude, all_planes=param_groups['method_params'].write_all_planes)
+    plot_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude, param_groups['method_params'])
 
     recon_wf = recon_wf_stack.time_average()
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask)
