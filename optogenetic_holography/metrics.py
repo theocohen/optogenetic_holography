@@ -13,7 +13,7 @@ class MSE(torch.nn.Module):
         if self.normalise_recon:
             loss = self.criterion(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi])
         else:
-            loss = self.criterion(recon_wf.amplitude[recon_wf.roi].detach(), target_amp[recon_wf.roi])
+            loss = self.criterion(recon_wf.amplitude[recon_wf.roi], target_amp[recon_wf.roi])
         if self.mask is not None:
             loss *= self.mask
 
