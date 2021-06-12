@@ -59,7 +59,7 @@ def main():
         return torch.nn.MSELoss(reduction='none')(input, target).mean(dim=(1, 2, 3), keepdim=False)
     loss_fn = torch.nn.MSELoss() if args.average_batch_grads else vectorised_loss
     """
-    mask = load_mask(args.target_mask_path)
+    mask = load_mask(args.target_mask_path, device)
     loss_fn = MSE(mask=mask, average_batch_grads=args.average_batch_grads)
     param_groups['method_params'].loss_fn = loss_fn.to(device)
 

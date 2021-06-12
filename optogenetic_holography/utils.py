@@ -39,11 +39,11 @@ def mkdir(path):
     os.makedirs(path)
 
 
-def load_mask(mask_path):
+def load_mask(mask_path, device):
     if mask_path == '':
         return None
-    images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(mask_path))])
-    return torch.tensor(images).reshape((1,) + images.shape)
+    images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(mask_path))]) / 255.0
+    return torch.tensor(images, dtype=torch.float32).reshape((1,) + images.shape).to(device)
 
 
 def init_writer(output_path, experiment, setup=None):
