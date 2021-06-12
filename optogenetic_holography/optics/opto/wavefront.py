@@ -79,6 +79,12 @@ class Wavefront:
     def amplitude(self, new_amplitude):
         self.u = torch.polar(new_amplitude.broadcast_to(self.shape).to(self.device), self.phase)
 
+    def set_amplitude(self, new_amplitude, mask=None):
+        if mask is None:
+            self.amplitude = new_amplitude
+        else:
+            self.amplitude[self.roi] = ~mask.bool() * self.amplitude[self.roi] + mask * new_amplitude[self.roi]
+
     def set_random_amplitude(self):
         self.amplitude = torch.rand(self.shape).float()
 

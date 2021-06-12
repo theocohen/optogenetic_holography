@@ -10,7 +10,7 @@ class MSE(torch.nn.Module):
         self.normalise_recon = normalise_recon
 
     def forward(self, recon_wf, target_amp, force_average=False):
-        if self.normalise_recon:
+        if self.normalise_recon:  #fixme fails
             loss = self.criterion(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi])
         else:
             loss = self.criterion(recon_wf.amplitude[recon_wf.roi], target_amp[recon_wf.roi])
