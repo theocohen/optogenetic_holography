@@ -129,11 +129,17 @@ class Wavefront:
         if options.threshold_foreground:
             img = (img > filters.threshold_otsu(img))
 
+        dpi = 80
+        height, width = self.resolution
+        figsize = width / float(dpi), height / float(dpi)
         for t in range(self.batch):
             for d in range(self.depth):
-                plt.imshow(img[t][d], cmap=options.cmap, norm=norm)
-                plt.xticks([]), plt.yticks([])
-                plt.savefig(f"{dir}/{title}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0)
+
+                fig = plt.figure(figsize=figsize)
+                ax = fig.add_axes([0, 0, 1, 1])
+                ax.axis('off')
+                ax.imshow(img[t][d], norm=norm, cmap='gray')
+                plt.savefig(f"{dir}/{title}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0, dpi=dpi)
                 plt.close()
 
     def plot_old(self, **kwargs):
