@@ -1,5 +1,7 @@
 import time
 import matplotlib
+from metrics import MSE
+
 matplotlib.use('agg')
 import os
 import logging
@@ -10,7 +12,7 @@ import torch
 
 from optogenetic_holography.arg_parser import ArgParser
 from optogenetic_holography.optics import optics_backend as opt
-from optogenetic_holography.utils import mkdir, init_writer, plot_time_average_sequence, config_logger
+from optogenetic_holography.utils import init_writer, plot_time_average_sequence, config_logger, load_mask
 import optogenetic_holography.algorithms as algorithms
 
 
@@ -52,9 +54,13 @@ def main():
     if device.type == 'cuda':
         print(torch.cuda.get_device_properties(device))
 
+    """
     def vectorised_loss(input, target):
         return torch.nn.MSELoss(reduction='none')(input, target).mean(dim=(1, 2, 3), keepdim=False)
     loss_fn = torch.nn.MSELoss() if args.average_batch_grads else vectorised_loss
+    """
+    mask = load_mask(args.target_mask_path)
+    loss_fn = MSE(mask=mask, average_batch_grads=args.average_batch_grads)
     param_groups['method_params'].loss_fn = loss_fn.to(device)
 
     # methods

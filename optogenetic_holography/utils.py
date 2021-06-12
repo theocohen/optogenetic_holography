@@ -1,9 +1,13 @@
+import glob
 import os
 import logging
 #from pytorch_ssim import ssim
 import sys
 from datetime import datetime
+
+import cv2
 import numpy as np
+import torch
 
 from piq import psnr, ssim
 from torch.nn.functional import mse_loss
@@ -33,6 +37,13 @@ def mkdir(path):
             os.remove(os.path.join(path, f))
         os.removedirs(path)
     os.makedirs(path)
+
+
+def load_mask(mask_path):
+    if mask_path == '':
+        return None
+    images = np.stack([cv2.imread(file, 0) for file in sorted(glob.glob(mask_path))])
+    return torch.tensor(images).reshape((1,) + images.shape)
 
 
 def init_writer(output_path, experiment, setup=None):
