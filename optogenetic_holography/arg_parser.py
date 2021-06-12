@@ -24,6 +24,7 @@ class ArgParser():
 
     def _add_io_args(self):
         self.p.add_argument('--target_path', required=True, type=str, help='')
+        self.p.add_argument('--target_mask_path', type=str, default='', help='')
         self.p.add_argument('--padding', type=int, nargs='+', default=[0], help='Scalar or [left, right, top, bottom]')
         self.p.add_argument('--optimize_resolution', type=str2bool, nargs='?', default=False, help='')
         self.p.add_argument('--output_path', type=str, default='./output/', help='')
@@ -67,6 +68,7 @@ class ArgParser():
         g.add_argument('--cmap', type=str, default='gray', help='')
         g.add_argument('--normalise_plot', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--threshold_foreground', type=str2bool, nargs='?', default=True, help='')
+        g.add_argument('--masked_plot', type=str2bool, nargs='?', default=True, help='')
 
     def _adjust_units(self, args):
         args.wavelength = args.wavelength * opt.nm
