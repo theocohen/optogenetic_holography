@@ -72,6 +72,7 @@ class ArgParser():
         g.add_argument('--masked_plot', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--figsize', type=int, nargs=2, default=None, help='')
         g.add_argument('--full_plot_name', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--plot_before_bin', type=str2bool, nargs='?', default=False, help='')
 
     def _adjust_units(self, args):
         args.wavelength = args.wavelength * opt.nm
