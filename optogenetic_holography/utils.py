@@ -71,9 +71,9 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, 
         writer.add_image(f'{prefix}/Reconstructed intensity', recon_wf.intensity[recon_wf.roi][batch_idx][plane_idx], iter, dataformats='HW')
 
     if show_holo == "both" or show_holo == "amp":
-        writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
+        writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[batch_idx][0], iter, dataformats='HW')
     if show_holo == "both" or show_holo == "phase":
-        writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
+        writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[batch_idx][0], iter, dataformats='HW')
 
     loss = loss if loss is not None else context.loss_fn(recon_wf, target_amp)
     writer.add_scalar(f'{prefix}/Loss', loss, iter)
