@@ -61,6 +61,7 @@ class ArgParser():
         g.add_argument('--average_batch_grads', type=bool, default=True, help='')
         g.add_argument('--summary_freq', type=int, default=10, help='')
         g.add_argument('--write_all_planes', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--write_holo', type=str2bool, nargs='?', default=False, help='')
 
     def _add_logging_params(self):
         g = self.p.add_argument_group('plot_params', '')
