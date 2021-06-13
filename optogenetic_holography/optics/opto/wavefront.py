@@ -122,22 +122,23 @@ class Wavefront:
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
 
-    def plot(self, dir, options, type='intensity', title='', is_holo=False, mask=None):
+    def plot(self, dir, options, type='intensity', title='', mask=None):
         if type == 'intensity':
             img = self.intensity
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
-        if not is_holo and options.crop_roi and self.roi is not None:
+        if options.crop_roi and self.roi is not None:
             img = img[self.roi]
             if options.masked_plot and mask is not None:
                 img *= mask.cpu().numpy()
-        norm = colors.Normalize() if options.normalise_plot else None
+        norm = colors.NoNorm() if options.normalise_plot else None
         if options.threshold_foreground:
             img = (img > filters.threshold_otsu(img))
 
+        plot_name = options.plot_name + '-' if options.plot_name is not None else ''
+
         dpi = 80
-        height, width = self.resolution
-        figsize = width / float(dpi), height / float(dpi)
+        figsize = tuple(options.figsize) if options.figsize is not None else (self.resolution[1] / float(dpi), self.resolution[0] / float(dpi))
         for t in range(self.batch):
             for d in range(self.depth):
 
@@ -145,7 +146,7 @@ class Wavefront:
                 ax = fig.add_axes([0, 0, 1, 1])
                 ax.axis('off')
                 ax.imshow(img[t][d], norm=norm, cmap='gray')
-                plt.savefig(f"{dir}/{title}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0, dpi=dpi)
+                plt.savefig(f"{dir}/{plot_name}{title}-t{str(t+1)}-d{str(d+1)}.jpg", pad_inches = 0, dpi=dpi)
                 plt.close()
 
     def plot_old(self, **kwargs):

@@ -72,14 +72,22 @@ def main():
     start_time = time.time()
     logging.info("Starting")
 
-    holo_wf = generator(start_wf, target_wf.amplitude, propagator, writer, param_groups['method_params'])
-    holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo', is_holo=True)
+    before_bin_holo_wf, holo_wf = generator(start_wf, target_wf.amplitude, propagator, writer, param_groups['method_params'])
+
+    holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo')
 
     recon_wf_stack = propagator.forward(holo_wf)
     plot_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude, param_groups['method_params'])
 
     recon_wf = recon_wf_stack.time_average()
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask)
+
+    if args.plot_before_bin:
+        holo_type = 'phase' if 'phase' in args.method else 'intensity'
+        before_bin_recon_wf_stack = propagator.forward(before_bin_holo_wf)  # for reference
+        before_bin_holo_wf.plot(summary_dir, param_groups['plot_params'], type=holo_type, title='before_bin-holo')
+        before_bin_recon_wf = before_bin_recon_wf_stack.time_average()
+        before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask)
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(time.time() - start_time))}\n")
 
