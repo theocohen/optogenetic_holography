@@ -70,6 +70,8 @@ class ArgParser():
         g.add_argument('--normalise_plot', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--threshold_foreground', type=str2bool, nargs='?', default=True, help='')
         g.add_argument('--masked_plot', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--figsize', type=int, nargs=2, default=None, help='')
+        g.add_argument('--full_plot_name', type=str2bool, nargs='?', default=False, help='')
 
     def _adjust_units(self, args):
         args.wavelength = args.wavelength * opt.nm

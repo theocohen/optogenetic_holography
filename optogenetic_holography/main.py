@@ -31,6 +31,8 @@ def main():
     # Tensorboard writer
     dim = '3D' if target_wf.depth > 1 else '2D'
     run_dir = f"{args.propagation_model}/{dim}/{args.method}"
+    if param_groups['plot_params'].full_plot_name:
+        param_groups['plot_params'].plot_name = f"{args.propagation_model}-{dim}-{args.method}"
     writer, summary_dir = init_writer(args.output_path, run_dir, setup=args.comment)
     if args.config_path:
         copy2(args.config_path, os.path.join(summary_dir, 'config.txt'))  # copy config file to summary directory
