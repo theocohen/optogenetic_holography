@@ -131,7 +131,7 @@ class Wavefront:
             img = img[self.roi]
             if options.masked_plot and mask is not None:
                 img *= mask.cpu().numpy()
-        norm = colors.NoNorm() if options.normalise_plot else None  # fixme NoNorm different from Normalize
+        norm = colors.Normalize() if options.normalise_plot else None
         if options.threshold_foreground:
             img = (img > filters.threshold_otsu(img))
 
