@@ -25,8 +25,8 @@ def bin_amp_phase_mgsa(start_wf, target_amplitude, propagator, writer, context) 
             logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, show_holo='none')
 
-        #recon_wf.amplitude = target_amplitude
-        recon_wf.set_amplitude(target_amplitude, mask=context.loss_fn.mask)
+        recon_wf.amplitude = target_amplitude
+        #recon_wf.set_amplitude(target_amplitude, mask=context.loss_fn.mask)
         #holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=1, keepdim=True)  # in-loop mean
         holo_wf.phase = propagator.backward(recon_wf).phase  # holo stack
         #holo_wf.amplitude = from_phase_to_bin_amp(propagator.backward(recon_wf).phase)  binarisation in-loop
@@ -54,8 +54,8 @@ def bin_amp_amp_mgsa(start_wf, target_amplitude, propagator, writer, context) ->
             logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
             write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, show_holo='none')
 
-        #recon_wf.amplitude = target_amplitude
-        recon_wf.set_amplitude(target_amplitude, mask=context.loss_fn.mask)
+        recon_wf.amplitude = target_amplitude
+        #recon_wf.set_amplitude(target_amplitude, mask=context.loss_fn.mask)
 
         holo_wf.amplitude = propagator.backward(recon_wf).amplitude
         #holo_wf.amplitude = from_amp_to_bin_amp(propagator.backward(recon_wf), method=context.bin_amp_mod)  binarisation in-loop
