@@ -54,7 +54,7 @@ def bin_amp_amp_mgsa(start_wf, target_amplitude, propagator, writer, context):
 
         if not iter % context.summary_freq:
             logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, show_holo='none')
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, show_holo=context.write_holo)
 
         recon_wf.amplitude = target_amplitude
         #recon_wf.set_amplitude(target_amplitude, mask=context.loss_fn.mask)
@@ -149,7 +149,7 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context):
         if not iter % context.summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss}, lr {lr}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, loss=loss, lr=lr, show_holo="none")
+            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, loss=loss, lr=lr, show_holo=context.write_holo)
 
     with torch.no_grad():
         before_bin_holo_wf = holo_wf.copy(copy_u=True)
