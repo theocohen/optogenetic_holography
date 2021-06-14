@@ -1,4 +1,4 @@
-import copy
+import logging
 import glob
 import cv2
 import torch
@@ -12,13 +12,14 @@ plt.style.use('dark_background')
 
 
 class Wavefront:
-    def __init__(self, resolution, depth=1, batch=1, roi=None, scale_intensity=1, device='cpu'):
+    def __init__(self, resolution, depth=1, batch=1, roi=None, scale_intensity=1, device='cpu', target_mean_amp=None):
         assert len(resolution) == 2
         self.resolution = resolution
         self.shape = (batch, depth,) + resolution
         self.u = torch.ones(self.shape, dtype=torch.complex64).to(device) * scale_intensity ** (1/2)
         self.roi = roi if roi is not None else (slice(None),) * 4
         self.device = device
+        self.target_mean_amp = target_mean_amp
 
     @classmethod
     def from_images(cls, path, intensity=True, scale_intensity=1, padding=[0], optimize_resolution=True, device='cpu'):
@@ -75,6 +76,9 @@ class Wavefront:
     def normalised_amplitude(self):
         return self.amplitude / self.amplitude.max()
 
+    def scaled_amplitude(self):
+        return self.amplitude * self.target_mean_amp / self.amplitude.mean(dim=(1, 2, 3))
+
     @amplitude.setter
     def amplitude(self, new_amplitude):
         self.u = torch.polar(new_amplitude.broadcast_to(self.shape).to(self.device), self.phase)
@@ -103,6 +107,10 @@ class Wavefront:
     def intensity(self):
         return Wavefront.to_numpy(torch.square(self.amplitude))
 
+    def scaled_intensity(self):
+        scale = self.target_mean_amp / self.amplitude.mean(dim=(1, 2, 3))
+        return scale, Wavefront.to_numpy(torch.square(self.amplitude * scale))
+
     @intensity.setter
     def intensity(self, new_intensity):
         self.amplitude = torch.sqrt(new_intensity).broadcast_to(self.shape).to(self.device)
@@ -122,16 +130,20 @@ class Wavefront:
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
 
-    def plot(self, dir, options, type='intensity', title='', mask=None):
+    def plot(self, dir, options, type='intensity', title='', mask=None, is_holo=False):
         if type == 'intensity':
-            img = self.intensity
+            if options.scale_plot_to_target and not is_holo and self.target_mean_amp is not None:
+                scale, img = self.scaled_intensity()
+                logging.info(f"Scaled plot by {scale}")
+            else:
+                img = self.intensity
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
         if options.crop_roi and self.roi is not None:
             img = img[self.roi]
             if options.masked_plot and mask is not None:
                 img *= mask.cpu().numpy()
-        norm = colors.NoNorm() if options.normalise_plot else None
+        norm = colors.NoNorm() if (options.normalise_plot and not is_holo) else None
         if options.threshold_foreground:
             img = (img > filters.threshold_otsu(img))
 
@@ -149,32 +161,6 @@ class Wavefront:
                 plt.savefig(f"{dir}/{plot_name}{title}-t{str(t+1)}-d{str(d+1)}.jpg", pad_inches = 0, dpi=dpi)
                 plt.close()
 
-    def plot_old(self, **kwargs):
-        if 'intensity' in kwargs:
-            options = kwargs['intensity']
-            img = self.intensity
-            if options['suppress_center']:
-                img[:, self.resolution[0] // 2, self.resolution[1] // 2] = 0
-            if options['normalize']:
-                img = self.intensity / self.intensity.max()
-        elif 'phase' in kwargs:
-            img = Wavefront.to_numpy(self.phase)
-            options = kwargs['phase']
-
-        if options["crop_roi"] and self.roi is not None:
-            img = img[self.roi]
-        if options["threshold_foreground"]:
-            img = (img > filters.threshold_otsu(img))
-        for t in range(self.batch):
-            for d in range(self.depth):
-                plt.imshow(img[t][d], cmap='gray')
-                plt.xticks([]), plt.yticks([])
-                if options['save']: plt.savefig(f"{options['path'] + options['title']}_t{str(t+1)}_d{str(d+1)}.jpg", bbox_inches="tight", pad_inches = 0)
-                plt.colorbar()
-                plt.title(f"{options['title']}_t{str(t+1)}_d{str(d+1)}.jpg")
-                plt.show()
-                plt.close()
-
     def time_average(self, t_start=0, t_end=None):
         ta_wf = self.copy()
         ta_wf.batch = 1
@@ -185,7 +171,7 @@ class Wavefront:
     def copy(self, copy_u=False, batch=None, depth=None):
         depth = self.depth if depth is None else depth
         batch = self.batch if batch is None else batch
-        copy_wf = Wavefront(self.resolution, depth=depth, batch=batch, roi=self.roi, device=self.device)
+        copy_wf = Wavefront(self.resolution, depth=depth, batch=batch, roi=self.roi, device=self.device, target_mean_amp=self.target_mean_amp)
         if copy_u:
             copy_wf.u = self.u.broadcast_to(copy_wf.shape)
         return copy_wf

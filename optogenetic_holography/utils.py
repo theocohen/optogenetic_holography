@@ -84,7 +84,7 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, 
     if lr: writer.add_scalar(f'{prefix}/lr', lr, iter)
 
 
-def plot_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context):
+def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context):
     prefix = 'Time multiplexing'
     for t in range(0, recon_wf_stack.batch):  # fixme redundant computation
         recon_wf = recon_wf_stack.time_average(t_end=t+1)

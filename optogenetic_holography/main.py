@@ -12,7 +12,7 @@ import torch
 
 from optogenetic_holography.arg_parser import ArgParser
 from optogenetic_holography.optics import optics_backend as opt
-from optogenetic_holography.utils import init_writer, plot_time_average_sequence, config_logger, load_mask
+from optogenetic_holography.utils import init_writer, write_time_average_sequence, config_logger, load_mask
 import optogenetic_holography.algorithms as algorithms
 
 
@@ -24,7 +24,7 @@ def main():
 
     # Init wavefronts
     target_wf = opt.Wavefront.from_images(args.target_path, optimize_resolution=args.optimize_resolution, padding=args.padding, scale_intensity=args.target_wf_intensity, device=device)
-    start_wf = opt.Wavefront(target_wf.resolution, roi=target_wf.roi, scale_intensity=args.start_wf_intensity, device=device)
+    start_wf = opt.Wavefront(target_wf.resolution, roi=target_wf.roi, scale_intensity=args.start_wf_intensity, device=device, target_mean_amp=target_wf.amplitude.mean())
     if args.start_wf_phases == 'random':
         start_wf = opt.RandomPhaseMask().forward(start_wf)
 
@@ -74,10 +74,10 @@ def main():
 
     before_bin_holo_wf, holo_wf = generator(start_wf, target_wf.amplitude, propagator, writer, param_groups['method_params'])
 
-    holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo')
+    holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo', is_holo=True)
 
     recon_wf_stack = propagator.forward(holo_wf)
-    plot_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude, param_groups['method_params'])
+    write_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude, param_groups['method_params'])
 
     recon_wf = recon_wf_stack.time_average()
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask)
@@ -85,7 +85,7 @@ def main():
     if args.plot_before_bin:
         holo_type = 'phase' if 'phase' in args.method else 'intensity'
         before_bin_recon_wf_stack = propagator.forward(before_bin_holo_wf)  # for reference
-        before_bin_holo_wf.plot(summary_dir, param_groups['plot_params'], type=holo_type, title='before_bin-holo')
+        before_bin_holo_wf.plot(summary_dir, param_groups['plot_params'], type=holo_type, title='before_bin-holo', is_holo=True)
         before_bin_recon_wf = before_bin_recon_wf_stack.time_average()
         before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask)
 
