@@ -130,13 +130,18 @@ class Wavefront:
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
 
-    def plot(self, dir, options, type='intensity', title='', mask=None, is_holo=False):
+    def plot(self, dir, options, type='intensity', title='', mask=None, scale=1, is_holo=False):
         if type == 'intensity':
+            """
             if options.scale_plot_to_target and not is_holo and self.target_mean_amp is not None:
                 scale, img = self.scaled_intensity()
                 logging.info(f"Scaled plot by {scale}")
             else:
                 img = self.intensity
+            """
+            img = Wavefront.to_numpy(scale * (self.amplitude ** 2))
+            #logging.info(f"Scaling by total int {self.intensity.sum()}")
+            #img = self.intensity / self.intensity.sum()
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
         if options.crop_roi and self.roi is not None:
@@ -157,7 +162,7 @@ class Wavefront:
                 fig = plt.figure(figsize=figsize)
                 ax = fig.add_axes([0, 0, 1, 1])
                 ax.axis('off')
-                ax.imshow(img[t][d], norm=norm, cmap='gray')
+                ax.imshow(img[t][d], norm=norm, cmap=options.cmap)
                 plt.savefig(f"{dir}/{plot_name}{title}-t{str(t+1)}-d{str(d+1)}.jpg", pad_inches = 0, dpi=dpi)
                 plt.close()
 

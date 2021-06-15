@@ -1,6 +1,7 @@
 import time
 import matplotlib
-from metrics import MSE
+from metrics import MSE, Accuracy
+from scale_optimiser import ScaleOptimiser
 
 matplotlib.use('agg')
 import os
@@ -62,8 +63,12 @@ def main():
     loss_fn = torch.nn.MSELoss() if args.average_batch_grads else vectorised_loss
     """
     mask = load_mask(args.target_mask_path, device)
-    loss_fn = MSE(mask=mask, average_batch_grads=args.average_batch_grads, normalise_recon=args.normalise_recon)
-    param_groups['method_params'].loss_fn = loss_fn.to(device)
+    loss_fn = MSE(mask=mask, average_batch_grads=args.average_batch_grads, normalise_recon=args.normalise_recon).to(device)
+    acc_fn = Accuracy(mask=mask).to(device)
+    param_groups['method_params'].loss_fn = loss_fn
+    param_groups['method_params'].acc_fn = acc_fn
+
+    scaleOptimiser = ScaleOptimiser(target_wf.amplitude, loss_fn, summary_dir)
 
     # methods
     generator = getattr(algorithms, args.method)
@@ -78,16 +83,29 @@ def main():
 
     recon_wf_stack = propagator.forward(holo_wf)
     write_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude, param_groups['method_params'])
-
     recon_wf = recon_wf_stack.time_average()
-    recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask)
+
+    scale = scaleOptimiser.find_scale(recon_wf, wf_name='recon_wf')
+    recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask, scale=scale)
+
+    recon_acc = acc_fn(recon_wf, target_wf.amplitude, scale=scale)
+    loss = loss_fn(recon_wf, target_wf.amplitude, scale=scale)
+    logging.info(f"Accuracy for (scaled) recon wf = {recon_acc}")
+    logging.info(f"Loss for (scaled) recon wf = {loss}\n")
 
     if args.plot_before_bin:
         holo_type = 'phase' if 'phase' in args.method else 'intensity'
         before_bin_recon_wf_stack = propagator.forward(before_bin_holo_wf)  # for reference
         before_bin_holo_wf.plot(summary_dir, param_groups['plot_params'], type=holo_type, title='before_bin-holo', is_holo=True)
         before_bin_recon_wf = before_bin_recon_wf_stack.time_average()
-        before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask)
+
+        scale = scaleOptimiser.find_scale(before_bin_recon_wf, wf_name='before_bin_recon_wf')
+        before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask, scale=scale)
+
+        recon_acc = acc_fn(before_bin_recon_wf, target_wf.amplitude, scale=scale)
+        loss = loss_fn(before_bin_recon_wf, target_wf.amplitude, scale=scale)
+        logging.info(f"Accuracy for (scaled) before bin recon wf = {recon_acc}")
+        logging.info(f"MSE for (scaled) before bin recon wf = {loss}")
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(time.time() - start_time))}\n")
 

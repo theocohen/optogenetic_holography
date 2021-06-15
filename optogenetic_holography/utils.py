@@ -77,6 +77,8 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, 
 
     loss = loss if loss is not None else context.loss_fn(recon_wf, target_amp)
     writer.add_scalar(f'{prefix}/Loss', loss, iter)
+    # fixme scale
+    writer.add_scalar(f"{prefix}/Acc", context.acc_fn(recon_wf, target_amp), iter)
 
     writer.add_scalar(f'{prefix}/ssim', ssim(recon_wf.normalised_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)  # scaling to avoid error
     writer.add_scalar(f'{prefix}/psnr', psnr(recon_wf.normalised_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)
