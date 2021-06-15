@@ -46,7 +46,6 @@ class ArgParser():
         self.p.add_argument('--lens_radius', type=float, default=6, help='unit: mm')
         self.p.add_argument('--lens_focal_length', type=float, default=20, help='unit: cm')
         self.p.add_argument('--remove_airy_disk', type=str2bool, nargs='?', default=False, help='')
-        self.p.add_argument('--normalise_recon', type=str2bool, nargs='?', default=False, help='')
 
     def _add_method_params(self):
         g = self.p.add_argument_group('method_params', '')
@@ -58,7 +57,11 @@ class ArgParser():
         g.add_argument('--bin_sharpness', type=float, help='For bin_amp_amp_sig_sgd only')
         g.add_argument('--bin_threshold', type=float, help='For bin_amp_amp_sig_sgd only')
         g.add_argument('--random_holo_init', type=str2bool, nargs='?', default=True, help='')
-        g.add_argument('--average_batch_grads', type=bool, default=True, help='')
+        g.add_argument('--average_batch_grads', type=str2bool, nargs='?', default=True, help='')
+        g.add_argument('--learn_scale', type=str, default='implicit',
+                       help='For SGD only. Either optimise scale as part of main optimisation or with an explicit optimiser',
+                       choices=['implicit', 'explicit', 'none'])
+
         g.add_argument('--summary_freq', type=int, default=10, help='')
         g.add_argument('--write_all_planes', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--write_holo', type=str, default='none', help='')

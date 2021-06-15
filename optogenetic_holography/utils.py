@@ -66,7 +66,7 @@ def assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True):
 def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, lr=None, prefix='Iterations', show_holo="none", plane_idx=0, batch_idx=0, scale=None):
 
     if scale is None:
-        scale = context.scale_fn(recon_wf) if context.write_with_scale else torch.tensor(1)
+        scale = context.scale_fn(recon_wf, target_amp) if context.write_with_scale else torch.tensor(1)
 
     if context.write_all_planes:
         writer.add_images(f'{prefix}/Reconstructed intensities', opt.Wavefront.to_numpy(scale) * np.expand_dims(recon_wf.intensity[recon_wf.roi][batch_idx], axis=1), iter, dataformats='NCHW')
@@ -89,15 +89,15 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, 
     if lr: writer.add_scalar(f'{prefix}/lr', lr, iter)
 
 
-def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context):
+def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context, scale):
     prefix = 'Time multiplexing'
     for t in range(0, recon_wf_stack.batch):  # fixme redundant computation
         recon_wf = recon_wf_stack.time_average(t_end=t+1)
         if context.write_all_planes:
-            writer.add_images(f'{prefix}/TA Intensity sequence', np.expand_dims(recon_wf.intensity[recon_wf.roi][0], axis=1), t, dataformats='NCHW')
+            writer.add_images(f'{prefix}/TA Intensity sequence', scale * np.expand_dims(recon_wf.intensity[recon_wf.roi][0], axis=1), t, dataformats='NCHW')
         else:
             writer.add_image(f'{prefix}/TA Intensity sequence', recon_wf.intensity[recon_wf.roi][0][0], t, dataformats='HW')
 
-        writer.add_scalar(f'{prefix}/MSE', context.loss_fn(recon_wf, target_amp), t)
+        writer.add_scalar(f'{prefix}/MSE', context.loss_fn(recon_wf, target_amp, scale=scale), t)
         writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
         writer.add_scalar(f'{prefix}/PSNR', psnr(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)

@@ -173,13 +173,18 @@ class Wavefront:
         ta_wf.u = self.u[t_start:t_end, :, :].mean(dim=0, keepdim=True)
         return ta_wf
 
-    def copy(self, copy_u=False, batch=None, depth=None):
+    def copy(self, copy_u=False, batch=None, depth=None, detach=False):
         depth = self.depth if depth is None else depth
         batch = self.batch if batch is None else batch
         copy_wf = Wavefront(self.resolution, depth=depth, batch=batch, roi=self.roi, device=self.device, target_mean_amp=self.target_mean_amp)
         if copy_u:
             copy_wf.u = self.u.broadcast_to(copy_wf.shape)
+            if detach:
+                copy_wf.detach_()
         return copy_wf
 
-    def requires_grad(self):
+    def requires_grad_(self):
         self.u.requires_grad_(True)
+
+    def detach_(self):
+        self.u = self.u.detach()

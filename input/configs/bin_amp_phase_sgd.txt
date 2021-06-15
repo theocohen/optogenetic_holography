@@ -1,17 +1,28 @@
 method = bin_amp_phase_sgd
 
-target_path = ./input/digits/*.jpg
-padding = [50, 700, 50, 700]
+target_path = ./input/cameraman.png
+output_path = ./output/
+
+padding = [0, 520, 0, 520]
 optimize_resolution = False
 
 start_wf_phases = flat
 propagation_model = FourierFresnel
-propagation_dist = [-2, 2]
-
-ta_batch = 10
-iterations = 50
-lr = 0.1
+propagation_dist = 2
+ta_batch = 1
+iterations = 10
 random_holo_init = True
+learn_scale = explicit
 
-summary_freq = 5
+remove_airy_disk = True
+summary_freq = 1
 threshold_foreground = False
+normalise_plot = False
+crop_roi = True
+write_all_planes = True
+masked_plot = True
+figsize = [6, 6]
+full_plot_name = True
+plot_before_bin = True
+scale_plot_to_target = False
+write_with_scale = True
