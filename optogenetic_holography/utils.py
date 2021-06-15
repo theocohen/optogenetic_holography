@@ -63,23 +63,26 @@ def assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True):
             assert phase_shift[i] < 1e-9, f'index:{i}, diff:{d}, phase_holo:{holo_wf.phase.flatten()[i]}, phase_start:{start_wf.phase.flatten()[i]}, amp_optim:{amplitude.flatten()[i]}, amp_holo:{holo_wf.amplitude.flatten()[i]}. amp_start:{start_wf.amplitude.flatten()[i]}'
 
 
-def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, lr=None, prefix='Iterations', show_holo="none", plane_idx=0, batch_idx=0):
+def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, lr=None, prefix='Iterations', show_holo="none", plane_idx=0, batch_idx=0, scale=None):
+
+    if scale is None:
+        scale = context.scale_fn(recon_wf) if context.write_with_scale else torch.tensor(1)
 
     if context.write_all_planes:
-        writer.add_images(f'{prefix}/Reconstructed intensities', np.expand_dims(recon_wf.intensity[recon_wf.roi][batch_idx], axis=1), iter, dataformats='NCHW')
+        writer.add_images(f'{prefix}/Reconstructed intensities', opt.Wavefront.to_numpy(scale) * np.expand_dims(recon_wf.intensity[recon_wf.roi][batch_idx], axis=1), iter, dataformats='NCHW')
     else:
-        writer.add_image(f'{prefix}/Reconstructed intensity', recon_wf.intensity[recon_wf.roi][batch_idx][plane_idx], iter, dataformats='HW')
+        writer.add_image(f'{prefix}/Reconstructed intensity', opt.Wavefront.to_numpy(scale) * recon_wf.intensity[recon_wf.roi][batch_idx][plane_idx], iter, dataformats='HW')
 
     if show_holo == "both" or show_holo == "amp":
         writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
     if show_holo == "both" or show_holo == "phase":
         writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
 
-    loss = loss if loss is not None else context.loss_fn(recon_wf, target_amp)
-    writer.add_scalar(f'{prefix}/Loss', loss, iter)
-    # fixme scale
-    writer.add_scalar(f"{prefix}/Acc", context.acc_fn(recon_wf, target_amp), iter)
+    loss = loss if loss is not None else context.loss_fn(recon_wf, target_amp, scale=scale)
 
+    writer.add_scalar(f'{prefix}/Scale', scale, iter)
+    writer.add_scalar(f'{prefix}/Loss', loss, iter)
+    writer.add_scalar(f"{prefix}/Acc", context.acc_fn(recon_wf, target_amp, scale), iter)
     writer.add_scalar(f'{prefix}/ssim', ssim(recon_wf.normalised_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)  # scaling to avoid error
     writer.add_scalar(f'{prefix}/psnr', psnr(recon_wf.normalised_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)
 

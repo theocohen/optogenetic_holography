@@ -65,10 +65,10 @@ def main():
     mask = load_mask(args.target_mask_path, device)
     loss_fn = MSE(mask=mask, average_batch_grads=args.average_batch_grads, normalise_recon=args.normalise_recon).to(device)
     acc_fn = Accuracy(mask=mask).to(device)
+    scale_fn = ScaleOptimiser(target_wf.amplitude, loss_fn, summary_dir)
     param_groups['method_params'].loss_fn = loss_fn
     param_groups['method_params'].acc_fn = acc_fn
-
-    scaleOptimiser = ScaleOptimiser(target_wf.amplitude, loss_fn, summary_dir)
+    param_groups['method_params'].scale_fn = scale_fn
 
     # methods
     generator = getattr(algorithms, args.method)
@@ -85,12 +85,12 @@ def main():
     write_time_average_sequence(writer, recon_wf_stack, target_wf.amplitude, param_groups['method_params'])
     recon_wf = recon_wf_stack.time_average()
 
-    scale = scaleOptimiser.find_scale(recon_wf, wf_name='recon_wf')
+    scale = scale_fn(recon_wf)
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask, scale=scale)
 
     recon_acc = acc_fn(recon_wf, target_wf.amplitude, scale=scale)
     loss = loss_fn(recon_wf, target_wf.amplitude, scale=scale)
-    logging.info(f"Accuracy for (scaled) recon wf = {recon_acc}")
+    logging.info(f"\nAccuracy for (scaled) recon wf = {recon_acc}")
     logging.info(f"Loss for (scaled) recon wf = {loss}\n")
 
     if args.plot_before_bin:
@@ -99,7 +99,7 @@ def main():
         before_bin_holo_wf.plot(summary_dir, param_groups['plot_params'], type=holo_type, title='before_bin-holo', is_holo=True)
         before_bin_recon_wf = before_bin_recon_wf_stack.time_average()
 
-        scale = scaleOptimiser.find_scale(before_bin_recon_wf, wf_name='before_bin_recon_wf')
+        scale = scale_fn(before_bin_recon_wf)
         before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask, scale=scale)
 
         recon_acc = acc_fn(before_bin_recon_wf, target_wf.amplitude, scale=scale)

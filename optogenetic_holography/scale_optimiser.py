@@ -4,16 +4,17 @@ import matplotlib.pyplot as plt
 import logging
 
 
-class ScaleOptimiser():
+class ScaleOptimiser(torch.nn.Module):
 
     def __init__(self, target_amp, criterion, dir, iterations=100, lr=0.1):
+        super(ScaleOptimiser, self).__init__()
         self.target_amp = target_amp
         self.criterion = criterion
         self.iterations = iterations
         self.lr = lr
         self.dir = dir
 
-    def find_scale(self, recon_wf, wf_name='', init_scale=None):
+    def forward(self, recon_wf, wf_name='', init_scale=None):
         losses = []
         scales = []
 
@@ -38,7 +39,7 @@ class ScaleOptimiser():
             scales.append(scale.clone().cpu().detach().numpy())
 
         scale = scale.detach()
-        logging.info(f"Optimal scale {scale.squeeze().cpu().numpy()} for {wf_name} ")
+        logging.info(f"Optimal scale {scale.squeeze().cpu().numpy()}")
         plt.scatter(scales, losses)
         plt.xlabel('Intensity scale')
         plt.ylabel('MSE between target and scaled recon')
