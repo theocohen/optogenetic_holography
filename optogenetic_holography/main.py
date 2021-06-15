@@ -85,11 +85,15 @@ def main():
     recon_wf_stack = propagator.forward(holo_wf)
 
     scale = scale_fn(recon_wf_stack, target_amp, plot_title='recon')
-    logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for recon wf [stack]")
+    logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for recon wf [stack]\n")
 
     write_time_average_sequence(writer, recon_wf_stack, target_amp, param_groups['method_params'], scale=scale)
     recon_wf = recon_wf_stack.time_average()
     #assert scale == scale_fn(recon_wf, target_amp, plot_title='recon') # should be the same
+
+    loss = loss_fn(recon_wf, target_amp, scale=scale)
+    acc = acc_fn(recon_wf, target_amp, scale=scale)
+    logging.info(f"Eval for [scaled recon wf]: Loss {loss:.4f}, Accuracy {acc:.4f}\n")
 
     write_summary(writer, holo_wf, recon_wf, target_amp, param_groups['method_params'].iterations, param_groups['method_params'], scale=scale)
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask, scale=scale)
@@ -104,10 +108,9 @@ def main():
         #logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for before bin recon wf")
         before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask, scale=scale)
 
-        recon_acc = acc_fn(before_bin_recon_wf, target_amp, scale=scale)
         loss = loss_fn(before_bin_recon_wf, target_amp, scale=scale)
-        logging.info(f"\nAccuracy for (scaled) before bin recon wf = {recon_acc:.4f}")
-        logging.info(f"Loss for (scaled) before bin recon wf = {loss:.4f}")
+        acc = acc_fn(before_bin_recon_wf, target_amp, scale=scale)
+        logging.info(f"Eval for [before bin scaled recon wf]: Loss {loss:.4f}, Accuracy {acc:.4f}\n")
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(time.time() - start_time))}\n")
 

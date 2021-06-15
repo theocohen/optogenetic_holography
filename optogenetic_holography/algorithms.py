@@ -10,10 +10,8 @@ from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import write_summary, assert_phase_unchanged
 
 
-def bin_amp_phase_mgsa(start_wf, target_amplitude, propagator, writer, context):
-    """Technically not the original Gercherberg-Saxton algorithm as not restricted to Fourier propagation"""
-
-    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amplitude.shape[1])  #  optimize hologram stack
+def bin_amp_phase_mgsa(start_wf, target_amp, propagator, writer, context):
+    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amp.shape[1])  #  optimize hologram stack
     #holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=1)  # in-loop
     if context.random_holo_init:
         holo_wf.set_random_phase()
@@ -22,30 +20,28 @@ def bin_amp_phase_mgsa(start_wf, target_amplitude, propagator, writer, context):
         recon_wf = propagator.forward(holo_wf)
 
         if not iter % context.summary_freq:
-            logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, show_holo=context.write_holo)
+            scale = context.scale_fn(recon_wf, target_amp) if context.write_with_scale else torch.tensor(1)
+            logging.info(f"MGSA iteration {iter}/{context.iterations}, scale {scale:.5f}")
+            write_summary(writer, holo_wf, recon_wf, target_amp, iter, context, show_holo=context.write_holo, scale=scale)
 
-        recon_wf.amplitude = target_amplitude
-        #recon_wf.set_amplitude(target_amplitude, mask=context.loss_fn.mask)
+        recon_wf.amplitude = target_amp
+        #recon_wf.set_amplitude(target_amp, mask=context.loss_fn.mask)
         #holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=1, keepdim=True)  # in-loop mean
         holo_wf.phase = propagator.backward(recon_wf).phase  # holo stack
         #holo_wf.amplitude = from_phase_to_bin_amp(propagator.backward(recon_wf).phase)  binarisation in-loop
 
     #binarization
-    before_bin_holo_wf = holo_wf.copy(copy_u=True)
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
 
     holo_wf.depth = 1
     holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase.mean(dim=1, keepdim=True)), start_wf.phase)
     #holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)
 
-    recon_wf = propagator.forward(holo_wf)
-    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, context, show_holo=context.write_holo)
-
-    return before_bin_holo_wf, holo_wf
+    return holo_wf, before_bin_metadata
 
 
-def bin_amp_amp_mgsa(start_wf, target_amplitude, propagator, writer, context):
-    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amplitude.shape[1])
+def bin_amp_amp_mgsa(start_wf, target_amp, propagator, writer, context):
+    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amp.shape[1])
     if context.random_holo_init:
         holo_wf.set_random_amplitude()
 
@@ -53,27 +49,25 @@ def bin_amp_amp_mgsa(start_wf, target_amplitude, propagator, writer, context):
         recon_wf = propagator.forward(holo_wf)
 
         if not iter % context.summary_freq:
-            logging.info("MGSA iteration {}/{}".format(iter, context.iterations))
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, show_holo=context.write_holo)
+            scale = context.scale_fn(recon_wf, target_amp) if context.write_with_scale else torch.tensor(1)
+            logging.info(f"MGSA iteration {iter}/{context.iterations}, scale {scale:.5f}")
+            write_summary(writer, holo_wf, recon_wf, target_amp, iter, context, show_holo=context.write_holo, scale=scale)
 
-        recon_wf.amplitude = target_amplitude
-        #recon_wf.set_amplitude(target_amplitude, mask=context.loss_fn.mask)
+        recon_wf.amplitude = target_amp
+        #recon_wf.set_amplitude(target_amp, mask=context.loss_fn.mask)
 
         holo_wf.amplitude = propagator.backward(recon_wf).amplitude
         #holo_wf.amplitude = from_amp_to_bin_amp(propagator.backward(recon_wf), method=context.bin_amp_mod)  binarisation in-loop
 
-    before_bin_holo_wf = holo_wf.copy(copy_u=True)
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
 
     holo_wf.depth = 1
     holo_wf.polar_to_rect(from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=1, keepdim=True), method=context.bin_amp_mod), start_wf.phase)
 
-    recon_wf = propagator.forward(holo_wf)
-    write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, context, show_holo=context.write_holo)
-
-    return before_bin_holo_wf, holo_wf
+    return holo_wf, before_bin_metadata
 
 
-def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, writer, context):
+def bin_amp_phase_sgd(start_wf, target_amp, propagator, writer, context):
     holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch)
     if context.random_holo_init:
         holo_wf.set_random_phase()
@@ -101,9 +95,9 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, writer, context):
         if context.learn_scale == 'implicit':
             scale = torch.exp(log_scale)
         elif context.learn_scale == 'explicit':
-            scale = context.scale_fn(recon_wf, target_amplitude)
+            scale = context.scale_fn(recon_wf, target_amp)
 
-        loss = context.loss_fn(recon_wf, target_amplitude, scale=scale)
+        loss = context.loss_fn(recon_wf, target_amp, scale=scale)
         if context.average_batch_grads:
             loss.backward()
         else:
@@ -113,7 +107,7 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, writer, context):
         if not iter % context.summary_freq:
             lr = optimizer.param_groups[0]['lr']
             logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss:.4f}, lr {lr:.4f}, scale {scale:.5f}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, loss=loss, lr=context.lr, show_holo=context.write_holo, scale=scale)
+            write_summary(writer, holo_wf, recon_wf, target_amp, iter, context, loss=loss, lr=context.lr, show_holo=context.write_holo, scale=scale)
 
         scheduler.step(loss)
         optimizer.step()
@@ -125,8 +119,7 @@ def bin_amp_phase_sgd(start_wf, target_amplitude, propagator, writer, context):
     return holo_wf, before_bin_metadata
 
 
-def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context):
-
+def bin_amp_amp_sgd(start_wf, target_amp, propagator, writer, context):
     holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch)
     if context.random_holo_init:
         holo_wf.set_random_amplitude()
@@ -135,6 +128,14 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context):
     log_amplitude = torch.log(amplitude).requires_grad_(True)
 
     params = [{'params': log_amplitude}]
+
+    if context.learn_scale == 'none':
+        scale = torch.tensor(1).to(start_wf.device)
+    if context.learn_scale == 'implicit':
+        log_scale = torch.tensor(0.0).to(start_wf.device)
+        log_scale.requires_grad_(True)
+        params.append({'params': log_scale})
+
     optimizer = optim.Adam(params, lr=context.lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
@@ -148,7 +149,12 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context):
 
         recon_wf = propagator.forward(holo_wf)
 
-        loss = context.loss_fn(recon_wf, target_amplitude)
+        if context.learn_scale == 'implicit':
+            scale = torch.exp(log_scale)
+        elif context.learn_scale == 'explicit':
+            scale = context.scale_fn(recon_wf, target_amp)
+
+        loss = context.loss_fn(recon_wf, target_amp, scale=scale)
         if context.average_batch_grads:
             loss.backward()
         else:
@@ -157,24 +163,20 @@ def bin_amp_amp_sgd(start_wf, target_amplitude, propagator, writer, context):
 
         if not iter % context.summary_freq:
             lr = optimizer.param_groups[0]['lr']
-            logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss:.4f}, lr {lr:.4f}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, loss=loss, lr=lr, show_holo=context.write_holo)
+            logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss:.4f}, lr {lr:.4f}, scale {scale:.5f}")
+            write_summary(writer, holo_wf, recon_wf, target_amp, iter, context, loss=loss, lr=lr, show_holo=context.write_holo, scale=scale)
 
         scheduler.step(loss)
         optimizer.step()
 
-    with torch.no_grad():
-        before_bin_holo_wf = holo_wf.copy(copy_u=True)
+    holo_wf.detach_()
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
+    holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method=context.bin_amp_mod)
 
-        holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method=context.bin_amp_mod)
-
-        recon_wf = propagator.forward(holo_wf)
-        loss = context.loss_fn(recon_wf, target_amplitude, force_average=True)
-        write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, context, loss=loss, lr=lr, show_holo=context.write_holo)
-    return before_bin_holo_wf, holo_wf
+    return holo_wf, before_bin_metadata
 
 
-def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, writer, context):
+def bin_amp_amp_sig_sgd(start_wf, target_amp, propagator, writer, context):
     # fixme
     holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch)
     if context.random_holo_init:
@@ -183,6 +185,14 @@ def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, writer, context)
     amplitude = holo_wf.amplitude.requires_grad_(True)
 
     params = [{'params': amplitude}]
+
+    if context.learn_scale == 'none':
+        scale = torch.tensor(1).to(start_wf.device)
+    if context.learn_scale == 'implicit':
+        log_scale = torch.tensor(0.0).to(start_wf.device)
+        log_scale.requires_grad_(True)
+        params.append({'params': log_scale})
+
     optimizer = optim.Adam(params, lr=context.lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
@@ -201,7 +211,12 @@ def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, writer, context)
 
         recon_wf = propagator.forward(holo_wf)
 
-        loss = context.loss_fn(recon_wf, target_amplitude)
+        if context.learn_scale == 'implicit':
+            scale = torch.exp(log_scale)
+        elif context.learn_scale == 'explicit':
+            scale = context.scale_fn(recon_wf, target_amp)
+
+        loss = context.loss_fn(recon_wf, target_amp, scale=scale)
         if context.average_batch_grads:
             loss.backward()
         else:
@@ -210,19 +225,16 @@ def bin_amp_amp_sig_sgd(start_wf, target_amplitude, propagator, writer, context)
 
         if not iter % context.summary_freq:
             lr = optimizer.param_groups[0]['lr']
-            logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss:.4f}, lr {lr:.4f}")
-            write_summary(writer, holo_wf, recon_wf, target_amplitude, iter, context, loss=loss, lr=lr, show_holo=context.write_holo)
+            logging.info(f"SGD iteration {iter}/{context.iterations}. Loss {loss:.4f}, lr {lr:.4f}, scale {scale:.5f}")
+            write_summary(writer, holo_wf, recon_wf, target_amp, iter, context, loss=loss, lr=lr, show_holo=context.write_holo, scale=scale)
 
         scheduler.step(loss)
         optimizer.step()
 
-    with torch.no_grad():
-        before_bin_holo_wf = holo_wf.copy(copy_u=True)
-        holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method="otsu")
+    holo_wf.detach_()
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
+    holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method="otsu")
 
-        recon_wf = propagator.forward(holo_wf)
-        loss = context.loss_fn(recon_wf, target_amplitude, force_average=True)
-        write_summary(writer, holo_wf, recon_wf, target_amplitude, iter + 1, context, loss=loss, lr=lr)
-    return before_bin_holo_wf, holo_wf
+    return holo_wf, before_bin_metadata
 
 
