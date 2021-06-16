@@ -161,7 +161,7 @@ class Wavefront:
                     divider = make_axes_locatable(ax)
                     cax = divider.append_axes('right', size='5%', pad=0.05)
                     fig.colorbar(im, cax=cax)
-                plt.savefig(f"{dir}/{plot_name}{title}-t{str(t+1)}-d{str(d+1)}.jpg",bbox_inches='tight', dpi=dpi)
+                plt.savefig(f"{dir}/{plot_name}{title}-t{str(t+1)}-d{str(d+1)}.jpg",bbox_inches='tight', pad_inches=0, dpi=dpi)
                 plt.close()
 
     def time_average(self, t_start=0, t_end=None):
