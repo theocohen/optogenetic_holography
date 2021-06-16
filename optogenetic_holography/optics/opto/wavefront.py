@@ -134,14 +134,14 @@ class Wavefront:
             img = scale * self.amplitude ** 2
             if options.normalise_plot and not is_holo:
                 # normalising by total intensity
-                img = Wavefront.to_numpy(img / img.sum())
+                img /= img.sum()
+            img = Wavefront.to_numpy(ig)
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
         if options.crop_roi and self.roi is not None:
             img = img[self.roi]
             if options.masked_plot and mask is not None:
                 img *= mask.cpu().numpy()
-        norm = colors.Normalize() if (options.normalise_plot and not is_holo) else None
         if options.threshold_foreground:
             img = (img > filters.threshold_otsu(img))
 
@@ -155,7 +155,7 @@ class Wavefront:
                 fig = plt.figure(figsize=figsize)
                 ax = fig.add_axes([0, 0, 1, 1])
                 ax.axis('off')
-                im = ax.imshow(img[t][d], norm=norm, cmap=('gray' if is_holo else options.cmap))
+                im = ax.imshow(img[t][d], cmap=('gray' if is_holo else options.cmap))
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
                 if options.plot_colorbar and not is_holo:
                     divider = make_axes_locatable(ax)
