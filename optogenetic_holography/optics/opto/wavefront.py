@@ -135,7 +135,7 @@ class Wavefront:
             if options.normalise_plot and not is_holo:
                 # normalising by total intensity
                 img /= img.sum()
-            img = Wavefront.to_numpy(ig)
+            img = Wavefront.to_numpy(img)
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
         if options.crop_roi and self.roi is not None:
