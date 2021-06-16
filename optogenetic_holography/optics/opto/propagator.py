@@ -69,9 +69,9 @@ class FresnelPropagator(Propagator):
             self.precomputed_H = torch.exp(1j * H_exp.float() * self.z).to(wf.device)
 
         propagated_wf = wf.copy()
-        propagated_wf.depth = self.z.shape[1]
         G = torch.fft.fftshift(torch.fft.fft2(wf.u, norm='ortho'), dim=(-2, -1))
         propagated_wf.u = torch.fft.ifft2(torch.fft.ifftshift(G * self.precomputed_H, dim=(-2, -1)), norm='ortho')
+        propagated_wf.depth = propagated_wf.u.shape[1]
         return propagated_wf
 
     def backward(self, wf) -> Wavefront:

@@ -34,7 +34,7 @@ def bin_amp_phase_mgsa(start_wf, target_amp, propagator, writer, context):
     before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
 
     holo_wf.depth = 1
-    holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase.mean(dim=1, keepdim=True)), start_wf.phase)
+    holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase.mean(dim=1, keepdim=True)), start_wf.phase)  # FIXME 3D in loop
     #holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)
 
     return holo_wf, before_bin_metadata
@@ -62,7 +62,7 @@ def bin_amp_amp_mgsa(start_wf, target_amp, propagator, writer, context):
     before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
 
     holo_wf.depth = 1
-    holo_wf.polar_to_rect(from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=1, keepdim=True), method=context.bin_amp_mod), start_wf.phase)
+    holo_wf.polar_to_rect(from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=1, keepdim=True), method=context.bin_amp_mod), start_wf.phase) # FIXME 3D in loop
 
     return holo_wf, before_bin_metadata
 

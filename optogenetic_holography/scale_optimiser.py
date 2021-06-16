@@ -19,7 +19,7 @@ class ScaleOptimiser(torch.nn.Module):
         scales = []
 
         scale = torch.tensor(float(init_scale)) if init_scale else torch.tensor(1)
-        log_scale = torch.log(scale).requires_grad_(True).to(recon_wf.device)
+        log_scale = torch.log(scale).to(recon_wf.device).requires_grad_(True)
 
         optimizer = optim.Adam([{'params': log_scale}], lr=self.lr)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
