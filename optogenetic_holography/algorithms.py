@@ -31,7 +31,7 @@ def bin_amp_phase_mgsa(start_wf, target_amp, propagator, writer, context):
         #holo_wf.amplitude = from_phase_to_bin_amp(propagator.backward(recon_wf).phase)  binarisation in-loop
 
     #binarization
-    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'last_scale': scale}
 
     holo_wf.depth = 1
     holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase.mean(dim=1, keepdim=True)), start_wf.phase)  # FIXME 3D in loop
@@ -59,7 +59,7 @@ def bin_amp_amp_mgsa(start_wf, target_amp, propagator, writer, context):
         holo_wf.amplitude = propagator.backward(recon_wf).amplitude
         #holo_wf.amplitude = from_amp_to_bin_amp(propagator.backward(recon_wf), method=context.bin_amp_mod)  binarisation in-loop
 
-    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'last_scale': scale}
 
     holo_wf.depth = 1
     holo_wf.polar_to_rect(from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=1, keepdim=True), method=context.bin_amp_mod), start_wf.phase) # FIXME 3D in loop
@@ -113,7 +113,7 @@ def bin_amp_phase_sgd(start_wf, target_amp, propagator, writer, context):
         optimizer.step()
 
     holo_wf.detach_()
-    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'last_scale': scale}
     holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)
 
     return holo_wf, before_bin_metadata
@@ -170,7 +170,7 @@ def bin_amp_amp_sgd(start_wf, target_amp, propagator, writer, context):
         optimizer.step()
 
     holo_wf.detach_()
-    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'last_scale': scale}
     holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method=context.bin_amp_mod)
 
     return holo_wf, before_bin_metadata
@@ -232,7 +232,7 @@ def bin_amp_amp_sig_sgd(start_wf, target_amp, propagator, writer, context):
         optimizer.step()
 
     holo_wf.detach_()
-    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'scale': scale}
+    before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'recon_wf_stack': recon_wf, 'last_scale': scale}
     holo_wf.amplitude = from_amp_to_bin_amp(holo_wf.amplitude, method="otsu")
 
     return holo_wf, before_bin_metadata

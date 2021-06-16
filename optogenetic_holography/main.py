@@ -89,7 +89,7 @@ def main():
 
     recon_wf_stack = propagator.forward(holo_wf)
 
-    scale = scale_fn(recon_wf_stack, target_amp, plot_title='recon', init_scale=before_bin_metadata['scale'])
+    scale = scale_fn(recon_wf_stack, target_amp, plot_title='recon', init_scale=before_bin_metadata['last_scale'])
     logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for recon wf [stack]\n")
 
     write_time_average_sequence(writer, recon_wf_stack, target_amp, param_groups['method_params'], scale=scale)
@@ -106,11 +106,16 @@ def main():
     if args.plot_before_bin and before_bin_metadata is not None:
         holo_type = 'phase' if 'phase' in args.method else 'intensity'
         before_bin_metadata['holo'].plot(summary_dir, param_groups['plot_params'], type=holo_type, title='before_bin-holo', is_holo=True)
-        before_bin_recon_wf = before_bin_metadata['recon_wf_stack'].time_average()
 
-        scale = before_bin_metadata['scale']
-        #scale = scale_fn(before_bin_recon_wf, target_amp, plot_title='before_bin_recon')  # uncomment if want to recompute scale
-        #logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for before bin recon wf")
+        if not 'recon_wf' in before_bin_metadata:
+            before_bin_recon_wf_stack = propagator.forward(before_bin_metadata['holo'])
+        else:
+            before_bin_recon_wf_stack = before_bin_metadata['recon_wf_stack']
+        before_bin_recon_wf = before_bin_recon_wf_stack.time_average()
+
+        scale = before_bin_metadata['last_scale']
+        scale = scale_fn(before_bin_recon_wf, target_amp, plot_title='before_bin_recon', init_scale=scale)  # uncomment if want to recompute scale
+        logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for before bin recon wf")
         before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask, scale=scale)
 
         loss = loss_fn(before_bin_recon_wf, target_amp, scale=scale)

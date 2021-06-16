@@ -6,7 +6,7 @@ import logging
 
 class ScaleOptimiser(torch.nn.Module):
 
-    def __init__(self, criterion, dir, iterations=100, lr=0.01):
+    def __init__(self, criterion, dir, iterations=100, lr=0.1):
         super(ScaleOptimiser, self).__init__()
         self.criterion = criterion
         self.iterations = iterations
