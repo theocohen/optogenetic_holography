@@ -75,16 +75,21 @@ def main():
     # methods
     generator = getattr(algorithms, args.method)
 
+    target_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='target', mask=mask, scale=1)
+
     # main program
-    start_time = time.time()
     logging.info("Starting")
+    start_time = time.time()
 
     holo_wf, before_bin_metadata = generator(start_wf, target_amp, propagator, writer, param_groups['method_params'])
+
+    end_time = time.time()
+
     holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo', is_holo=True)
 
     recon_wf_stack = propagator.forward(holo_wf)
 
-    scale = scale_fn(recon_wf_stack, target_amp, plot_title='recon')
+    scale = scale_fn(recon_wf_stack, target_amp, plot_title='recon', init_scale=before_bin_metadata['scale'])
     logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for recon wf [stack]\n")
 
     write_time_average_sequence(writer, recon_wf_stack, target_amp, param_groups['method_params'], scale=scale)
@@ -112,7 +117,7 @@ def main():
         acc = acc_fn(before_bin_recon_wf, target_amp, scale=scale)
         logging.info(f"Eval for [before bin scaled recon wf]: Loss {loss:.4f}, Accuracy {acc:.4f}\n")
 
-    logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(time.time() - start_time))}\n")
+    logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(end_time - start_time))}\n")
 
     writer.close()
 

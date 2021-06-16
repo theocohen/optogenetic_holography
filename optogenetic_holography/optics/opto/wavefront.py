@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
 from skimage import filters
-plt.style.use('dark_background')
+#plt.style.use('dark_background')
 
 #from optogenetic_holography.optics.wavefront import WavefrontInterface
 
@@ -40,10 +40,9 @@ class Wavefront:
         padded_images[wf.roi[1:]] = images
 
         if intensity:
-            wf.intensity = torch.tensor(padded_images * scale_intensity).float()
-            wf.amplitude /= wf.amplitude.amax(dim=(2, 3), keepdim=True)
+            wf.intensity = torch.tensor(padded_images * scale_intensity / 255).float()
         else:
-            wf.phase = torch.tensor(padded_images)
+            wf.phase = torch.tensor(padded_images)  # fixme map to -pi to pi
         return wf
 
     @property
@@ -132,23 +131,17 @@ class Wavefront:
 
     def plot(self, dir, options, type='intensity', title='', mask=None, scale=1, is_holo=False):
         if type == 'intensity':
-            """
-            if options.scale_plot_to_target and not is_holo and self.target_mean_amp is not None:
-                scale, img = self.scaled_intensity()
-                logging.info(f"Scaled plot by {scale}")
-            else:
-                img = self.intensity
-            """
-            img = Wavefront.to_numpy(scale * (self.amplitude ** 2))
-            #logging.info(f"Scaling by total int {self.intensity.sum()}")
-            #img = self.intensity / self.intensity.sum()
+            img = scale * self.amplitude ** 2
+            if options.normalise_plot and not is_holo:
+                # normalising by total intensity
+                img = Wavefront.to_numpy(img / img.sum())
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
         if options.crop_roi and self.roi is not None:
             img = img[self.roi]
             if options.masked_plot and mask is not None:
                 img *= mask.cpu().numpy()
-        norm = colors.NoNorm() if (options.normalise_plot and not is_holo) else None
+        norm = colors.Normalize() if (options.normalise_plot and not is_holo) else None
         if options.threshold_foreground:
             img = (img > filters.threshold_otsu(img))
 
@@ -162,8 +155,13 @@ class Wavefront:
                 fig = plt.figure(figsize=figsize)
                 ax = fig.add_axes([0, 0, 1, 1])
                 ax.axis('off')
-                ax.imshow(img[t][d], norm=norm, cmap=options.cmap)
-                plt.savefig(f"{dir}/{plot_name}{title}-t{str(t+1)}-d{str(d+1)}.jpg", pad_inches = 0, dpi=dpi)
+                im = ax.imshow(img[t][d], norm=norm, cmap=('gray' if is_holo else options.cmap))
+                from mpl_toolkits.axes_grid1 import make_axes_locatable
+                if options.plot_colorbar and not is_holo:
+                    divider = make_axes_locatable(ax)
+                    cax = divider.append_axes('right', size='5%', pad=0.05)
+                    fig.colorbar(im, cax=cax)
+                plt.savefig(f"{dir}/{plot_name}{title}-t{str(t+1)}-d{str(d+1)}.jpg",bbox_inches='tight', dpi=dpi)
                 plt.close()
 
     def time_average(self, t_start=0, t_end=None):

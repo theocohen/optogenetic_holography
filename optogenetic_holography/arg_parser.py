@@ -67,17 +67,17 @@ class ArgParser():
         g.add_argument('--write_holo', type=str, default='none', help='')
         g.add_argument('--write_with_scale', type=str2bool, nargs='?', default=True, help='Scale images and metrics to best match target when writing summary')
 
-    def _add_logging_params(self):
+    def _add_plotting_params(self):
         g = self.p.add_argument_group('plot_params', '')
         g.add_argument('--crop_roi',type=str2bool, nargs='?', default=True, help='')
-        g.add_argument('--cmap', type=str, default='gray', help='')
-        g.add_argument('--normalise_plot', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--cmap', type=str, default='turbo', help='')
+        g.add_argument('--normalise_plot', type=str2bool, nargs='?', default=True, help='')
         g.add_argument('--threshold_foreground', type=str2bool, nargs='?', default=True, help='')
         g.add_argument('--masked_plot', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--figsize', type=int, nargs=2, default=None, help='')
         g.add_argument('--full_plot_name', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--plot_before_bin', type=str2bool, nargs='?', default=False, help='')
-        g.add_argument('--scale_plot_to_target', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--plot_colorbar', type=str2bool, nargs='?', default=False, help='')
 
     def _adjust_units(self, args):
         args.wavelength = args.wavelength * opt.nm
@@ -96,7 +96,7 @@ class ArgParser():
         self._add_io_args()
         self._add_propagation_args()
         self._add_method_params()
-        self._add_logging_params()
+        self._add_plotting_params()
         args = self.p.parse_args()
         args = self._adjust_units(args)
 
