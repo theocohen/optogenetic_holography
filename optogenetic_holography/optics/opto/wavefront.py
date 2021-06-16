@@ -129,7 +129,7 @@ class Wavefront:
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
 
-    def plot(self, dir, options, type='intensity', title='', mask=None, scale=1, is_holo=False):
+    def plot(self, dir, options, type='intensity', title='', mask=None, scale=1, is_holo=False, force_colorbar=False):
         if type == 'intensity':
             img = scale * self.amplitude ** 2
             if options.normalise_plot and not is_holo:
@@ -157,7 +157,7 @@ class Wavefront:
                 ax.axis('off')
                 im = ax.imshow(img[t][d], cmap=('gray' if is_holo else options.cmap))
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
-                if options.plot_colorbar and not is_holo:
+                if force_colorbar or (options.plot_colorbar and not is_holo):
                     divider = make_axes_locatable(ax)
                     cax = divider.append_axes('right', size='5%', pad=0.05)
                     fig.colorbar(im, cax=cax)

@@ -75,7 +75,8 @@ def main():
     # methods
     generator = getattr(algorithms, args.method)
 
-    target_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='target', mask=mask, scale=1)
+    if args.plot_target:
+        target_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='target', mask=mask, scale=1, force_colorbar=True)
 
     # main program
     logging.info("Starting")
