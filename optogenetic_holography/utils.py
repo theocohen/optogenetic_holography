@@ -89,6 +89,7 @@ def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_am
                 writer.add_image(f'{prefix}/TA Intensity sequence', recon_wf.intensity[recon_wf.roi][0][0], t, dataformats='HW')
 
         writer.add_scalar(f'{prefix}/MSE', context.loss_fn(recon_wf, target_amp, scale=scale), t)
+        writer.add_scalar(f'{prefix}/Acc', context.acc_fn(recon_wf, target_amp, scale=scale), t)
         writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
         writer.add_scalar(f'{prefix}/PSNR', psnr(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
         del recon_wf
