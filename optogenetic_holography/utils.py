@@ -113,7 +113,7 @@ def write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, context,
 
 def write_metrics_to_csv(dir, name, method_name, modulation, metrics):
     file_path = f"{dir}/{name}-metrics.txt"
-    metrics = {key: (np.array([val]) if not isinstance(val, np.ndarray) else val) for key,val in metrics.items()}
+    metrics = {key: (np.array([val.cpu().numpy() if isinstance(val, torch.Tensor) else val]) if not isinstance(val, np.ndarray) else val) for key,val in metrics.items()}
     df = pd.DataFrame({"method": method_name, "modulation": modulation, **metrics})
     if not os.path.isfile(file_path):
         df.to_csv(file_path, index=False)
