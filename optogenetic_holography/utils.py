@@ -92,6 +92,7 @@ def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_am
         loss = context.loss_fn(recon_wf, target_amp, scale=scale)
         acc = context.acc_fn(recon_wf, target_amp, scale=scale)
         metrics = {"batch_size": t+1, "acc": acc, "loss": loss}
+        logging.info(metrics)
         write_metrics_to_csv(writer.get_logdir(), "ta_sequence", context.method,  modulation, metrics)
 
         writer.add_scalar(f'{prefix}/MSE', loss, t)
