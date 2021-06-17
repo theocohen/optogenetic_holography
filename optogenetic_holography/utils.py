@@ -111,5 +111,5 @@ def write_metrics_to_csv(dir, method_name, modulation, accuracy, loss):
 
 
 def assert_phase_unchanged(holo_wf, start_wf, threshold=1e-7):
-    assert (holo_wf.phase[holo_wf.amplitude != 0] - start_wf.phase[
-        holo_wf.amplitude != 0]).max() < threshold  # prevent phase modulation
+    # prevent phase modulation
+    assert (holo_wf.phase[holo_wf.amplitude != 0] - start_wf.phase.broadcast_to(holo_wf.shape)[holo_wf.amplitude != 0]).max() < threshold
