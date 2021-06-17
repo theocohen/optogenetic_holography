@@ -105,6 +105,8 @@ def write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, context,
 
 def write_metrics_to_csv(dir, name, method_name, modulation, accuracy, loss):
     file_path = f"{dir}/{name}-metrics.txt"
+    accuracy = np.array([accuracy]) if not isinstance(accuracy, np.ndarray) else accuracy
+    loss = np.array([loss]) if not isinstance(loss, np.ndarray) else loss
     df = pd.DataFrame({"method": method_name, "modulation": modulation, "acc": accuracy, "loss": loss})
     if not os.path.isfile(file_path):
         df.to_csv(file_path, index=False)
@@ -112,6 +114,7 @@ def write_metrics_to_csv(dir, name, method_name, modulation, accuracy, loss):
         df.to_csv(file_path, mode='a', header=False, index=False)
 
 
-def assert_phase_unchanged(holo_wf, start_wf, threshold=1e-7):
+def assert_phase_unchanged(holo_wf, start_wf, threshold=1e-6):
     # prevent phase modulation
-    assert (holo_wf.phase[holo_wf.amplitude != 0] - start_wf.phase.broadcast_to(holo_wf.shape)[holo_wf.amplitude != 0]).max() < threshold
+    max_phase_shift = (holo_wf.phase[holo_wf.amplitude != 0] - start_wf.phase.broadcast_to(holo_wf.shape)[holo_wf.amplitude != 0]).max()
+    assert max_phase_shift < threshold, f"ERROR illegal phase modulation happened. Maximum phase shift {max_phase_shift}"
