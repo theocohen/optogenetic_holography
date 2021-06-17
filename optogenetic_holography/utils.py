@@ -50,16 +50,6 @@ def init_writer(output_path, experiment, setup=None):
     return SummaryWriter(summary_dir), summary_dir
 
 
-def assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True):
-    if just_check_first:
-        phase_shift = (holo_wf.phase.flatten()[0] - start_wf.phase.flatten()[0])
-        assert phase_shift < 1e-9, f'index:{0}, diff:{phase_shift}, phase_holo:{holo_wf.phase.flatten()[0]}, phase_start:{start_wf.phase.flatten()[0]}, amp_optim:{amplitude.flatten()[0]}, amp_holo:{holo_wf.amplitude.flatten()[0]}. amp_start:{start_wf.amplitude.flatten()[0]}'
-    else:
-        phase_shift = (holo_wf.phase - start_wf.phase).flatten()
-        for i, d in enumerate(phase_shift):
-            assert phase_shift[i] < 1e-9, f'index:{i}, diff:{d}, phase_holo:{holo_wf.phase.flatten()[i]}, phase_start:{start_wf.phase.flatten()[i]}, amp_optim:{amplitude.flatten()[i]}, amp_holo:{holo_wf.amplitude.flatten()[i]}. amp_start:{start_wf.amplitude.flatten()[i]}'
-
-
 def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, lr=None, prefix='Iterations', show_holo="none", plane_idx=0, batch_idx=0, scale=None):
 
     if scale is None:
@@ -116,3 +106,8 @@ def write_metrics_to_csv(dir, method_name, modulation, accuracy, loss):
         df.to_csv(file_path, index=False)
     else:
         df.to_csv(file_path, mode='a', header=False, index=False)
+
+
+def assert_phase_unchanged(holo_wf, start_wf, threshold=1e-7):
+    assert (holo_wf.phase[holo_wf.amplitude != 0] - start_wf.phase[
+        holo_wf.amplitude != 0]).max() < threshold  # prevent phase modulation

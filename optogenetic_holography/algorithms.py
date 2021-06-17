@@ -1,13 +1,10 @@
 import logging
-from collections import defaultdict
 
 import torch
 from torch import optim
-from torch.nn.functional import mse_loss
 
 from optogenetic_holography.binarization import from_amp_to_bin_amp, from_phase_to_bin_amp
-from optogenetic_holography.optics import optics_backend as opt
-from optogenetic_holography.utils import write_summary, assert_phase_unchanged
+from optogenetic_holography.utils import write_summary
 
 
 def bin_amp_phase_mgsa(start_wf, target_amp, propagator, writer, context):
@@ -145,8 +142,6 @@ def bin_amp_amp_sgd(start_wf, target_amp, propagator, writer, context):
         amplitude = torch.exp(log_amplitude)
         holo_wf.polar_to_rect(amplitude, start_wf.phase)
 
-        #assert_phase_unchanged(amplitude, holo_wf, start_wf, just_check_first=True)  # comment for perf
-
         recon_wf = propagator.forward(holo_wf)
 
         if context.learn_scale == 'implicit':
@@ -206,8 +201,6 @@ def bin_amp_amp_sig_sgd(start_wf, target_amp, propagator, writer, context):
         bin_amp = 1 / (1 + torch.exp(- context.bin_sharpness * (amplitude - threshold)))
 
         holo_wf.polar_to_rect(bin_amp, start_wf.phase)
-
-        #assert_phase_unchanged(bin_amp, holo_wf, start_wf, just_check_first=True)  # comment for perf
 
         recon_wf = propagator.forward(holo_wf)
 

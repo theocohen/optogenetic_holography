@@ -2,6 +2,7 @@ import time
 import matplotlib
 from metrics import MSE, Accuracy
 from scale_optimiser import ScaleOptimiser
+from utils import assert_phase_unchanged
 
 matplotlib.use('agg')
 import os
@@ -78,7 +79,8 @@ def main():
     start_time = time.time()
 
     holo_wf, before_bin_metadata = generator(start_wf, target_amp, propagator, writer, param_groups['method_params'])
-    assert (holo_wf.phase == start_wf.phase).all() # prevent phase modulation
+
+    assert_phase_unchanged(holo_wf, start_wf)
     end_time = time.time()
 
     holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo', is_holo=True)
