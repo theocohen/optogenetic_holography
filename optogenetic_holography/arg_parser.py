@@ -28,9 +28,6 @@ class ArgParser():
         self.p.add_argument('--padding', type=int, nargs='+', default=[0], help='Scalar or [left, right, top, bottom]')
         self.p.add_argument('--optimize_resolution', type=str2bool, nargs='?', default=False, help='')
         self.p.add_argument('--output_path', type=str, default='./output/', help='')
-        self.p.add_argument('--method', type=str, default='bin_amp_phase_GS', help='',
-                            choices=['bin_amp_phase_mgsa', 'bin_amp_amp_mgsa', 'bin_amp_phase_sgd', 'bin_amp_amp_sgd',
-                                     'bin_amp_amp_sig_sgd'], )
         self.p.add_argument('--comment', type=str, default='', help='')
 
     def _add_propagation_args(self):
@@ -49,6 +46,9 @@ class ArgParser():
 
     def _add_method_params(self):
         g = self.p.add_argument_group('method_params', '')
+        g.add_argument('--method', type=str, default='bin_amp_phase_GS', help='',
+                            choices=['bin_amp_phase_mgsa', 'bin_amp_amp_mgsa', 'bin_amp_phase_sgd', 'bin_amp_amp_sgd',
+                                     'bin_amp_amp_sig_sgd'], )
         g.add_argument('--ta_batch', type=int, default=1, help='Time averaging batch size')
         g.add_argument('--iterations', type=int, default=10, help='')
         g.add_argument('--lr', type=float, default=0.1, help='For sgd methods only')

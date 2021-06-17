@@ -90,17 +90,17 @@ def main():
     scale = scale_fn(recon_wf_stack, target_amp, plot_title='recon', init_scale=before_bin_metadata['last_scale'])
     logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for recon wf [stack]\n")
     write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, param_groups['method_params'], args.method, scale=scale)
-    write_time_average_sequence(writer, recon_wf_stack, target_amp, param_groups['method_params'], scale=scale)
+    write_time_average_sequence(writer, recon_wf_stack, target_amp, param_groups['method_params'], scale=scale, modulation="final")
     if args.plot_ta_batch in ('final', 'both'):
         recon_wf_stack.plot(summary_dir + '/batch/', param_groups['plot_params'], type='intensity', title='recon_batch', mask=mask, scale=scale)
     recon_wf = recon_wf_stack.time_average()
     del recon_wf_stack
     #assert scale == scale_fn(recon_wf, target_amp, plot_title='recon') # should be the same
 
-    loss = loss_fn(recon_wf, target_amp, scale=scale)
-    acc = acc_fn(recon_wf, target_amp, scale=scale)
-    logging.info(f"Eval for [scaled recon wf]: Loss {loss.item():.4f}, Accuracy {acc.item():.4f}\n")
-    write_metrics_to_csv(summary_dir, "ta", args.method, "before bin", acc, loss)
+    loss = loss_fn(recon_wf, target_amp, scale=scale).item()
+    acc = acc_fn(recon_wf, target_amp, scale=scale).item()
+    logging.info(f"Eval for [scaled recon wf]: Loss {loss:.4f}, Accuracy {acc:.4f}\n")
+    write_metrics_to_csv(summary_dir, "ta", args.method, "final", acc, loss)
 
     write_summary(writer, holo_wf, recon_wf, target_amp, param_groups['method_params'].iterations, param_groups['method_params'], scale=scale)
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask, scale=scale)
@@ -118,7 +118,7 @@ def main():
         write_batch_summary_to_csv(summary_dir, before_bin_recon_wf_stack, target_amp, param_groups['method_params'],
                                    args.method, scale=scale, modulation="before bin")
         if args.plot_ta_batch in ('before_bin', 'both'):
-            recon_wf_stack.plot(summary_dir + '/batch/', param_groups['plot_params'], type='intensity',
+            before_bin_recon_wf_stack.plot(summary_dir + '/batch/', param_groups['plot_params'], type='intensity',
                                 title='before_bin-recon_batch', mask=mask, scale=scale)
 
         before_bin_recon_wf = before_bin_recon_wf_stack.time_average()
@@ -128,10 +128,10 @@ def main():
         logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for before bin recon wf")
         before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask, scale=scale)
 
-        loss = loss_fn(before_bin_recon_wf, target_amp, scale=scale)
-        acc = acc_fn(before_bin_recon_wf, target_amp, scale=scale)
+        loss = loss_fn(before_bin_recon_wf, target_amp, scale=scale).item()
+        acc = acc_fn(before_bin_recon_wf, target_amp, scale=scale).item()
         del before_bin_recon_wf
-        logging.info(f"Eval for [before bin scaled recon wf]: Loss {loss.item():.4f}, Accuracy {acc.item():.4f}\n")
+        logging.info(f"Eval for [before bin scaled recon wf]: Loss {loss:.4f}, Accuracy {acc:.4f}\n")
         write_metrics_to_csv(summary_dir, "ta", args.method, "before bin", acc, loss)
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(end_time - start_time))}\n")

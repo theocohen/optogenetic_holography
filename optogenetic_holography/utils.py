@@ -77,10 +77,11 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, 
     if lr: writer.add_scalar(f'{prefix}/lr', lr, iter)
 
 
-def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context, scale=1):
+def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context, scale=1, modulation="final"):
     # time averaged metrics
     prefix = 'Time multiplexing'
     for t in range(0, recon_wf_stack.batch):  # fixme redundant computation
+
         recon_wf = recon_wf_stack.time_average(t_end=t+1)
         if context.write_images:
             if context.write_all_planes:
@@ -88,8 +89,12 @@ def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_am
             else:
                 writer.add_image(f'{prefix}/TA Intensity sequence', recon_wf.intensity[recon_wf.roi][0][0], t, dataformats='HW')
 
-        writer.add_scalar(f'{prefix}/MSE', context.loss_fn(recon_wf, target_amp, scale=scale), t)
-        writer.add_scalar(f'{prefix}/Acc', context.acc_fn(recon_wf, target_amp, scale=scale), t)
+        loss = context.loss_fn(recon_wf, target_amp, scale=scale)
+        acc = context.acc_fn(recon_wf, target_amp, scale=scale)
+        write_metrics_to_csv(writer.get_logdir(), "ta_sequence", context.method,  modulation, acc, loss)
+
+        writer.add_scalar(f'{prefix}/MSE', loss, t)
+        writer.add_scalar(f'{prefix}/Acc', acc, t)
         writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
         writer.add_scalar(f'{prefix}/PSNR', psnr(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
         del recon_wf
