@@ -89,10 +89,9 @@ def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_am
             else:
                 writer.add_image(f'{prefix}/TA Intensity sequence', recon_wf.intensity[recon_wf.roi][0][0], t, dataformats='HW')
 
-        loss = context.loss_fn(recon_wf, target_amp, scale=scale)
-        acc = context.acc_fn(recon_wf, target_amp, scale=scale)
+        loss = context.loss_fn(recon_wf, target_amp, scale=scale).item()
+        acc = context.acc_fn(recon_wf, target_amp, scale=scale).item()
         metrics = {"batch_size": t+1, "acc": acc, "loss": loss}
-        logging.info(metrics)
         write_metrics_to_csv(writer.get_logdir(), "ta_sequence", context.method,  modulation, metrics)
 
         writer.add_scalar(f'{prefix}/MSE', loss, t)
@@ -114,7 +113,7 @@ def write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, context,
 
 def write_metrics_to_csv(dir, name, method_name, modulation, metrics):
     file_path = f"{dir}/{name}-metrics.txt"
-    metrics = {key: np.array([val.cpu().numpy() if isinstance(val, torch.Tensor) else val]) if not isinstance(val, np.ndarray) else val for key,val in metrics.items()}
+    metrics = {key: np.array([val]) if not isinstance(val, np.ndarray) else val for key,val in metrics.items()}
     df = pd.DataFrame({"method": method_name, "modulation": modulation, **metrics})
     if not os.path.isfile(file_path):
         df.to_csv(file_path, index=False)
