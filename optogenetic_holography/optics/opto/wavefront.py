@@ -173,7 +173,7 @@ class Wavefront:
         # fixme numerical precision
         ta_wf = self.copy(batch=1)
         t_end = self.batch if t_end is None else t_end
-        ta_wf.u = torch.sqrt((self.amplitude[t_start:t_end, :, :] ** 2).mean(dim=0, keepdim=True)).type('torch.ComplexFloatTensor')
+        ta_wf.u = torch.sqrt((self.amplitude[t_start:t_end, :, :] ** 2).mean(dim=0, keepdim=True)).type('torch.ComplexFloatTensor').to(self.device)
         return ta_wf
 
     def copy(self, copy_u=False, batch=None, depth=None, detach=False):
