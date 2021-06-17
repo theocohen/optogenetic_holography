@@ -55,15 +55,16 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, 
     if scale is None:
         scale = context.scale_fn(recon_wf, target_amp) if context.write_with_scale else torch.tensor(1)
 
-    if context.write_all_planes:
-        writer.add_images(f'{prefix}/Reconstructed intensities', opt.Wavefront.to_numpy(scale) * np.expand_dims(recon_wf.intensity[recon_wf.roi][batch_idx], axis=1), iter, dataformats='NCHW')
-    else:
-        writer.add_image(f'{prefix}/Reconstructed intensity', opt.Wavefront.to_numpy(scale) * recon_wf.intensity[recon_wf.roi][batch_idx][plane_idx], iter, dataformats='HW')
+    if context.write_images:
+        if context.write_all_planes:
+            writer.add_images(f'{prefix}/Reconstructed intensities', opt.Wavefront.to_numpy(scale) * np.expand_dims(recon_wf.intensity[recon_wf.roi][batch_idx], axis=1), iter, dataformats='NCHW')
+        else:
+            writer.add_image(f'{prefix}/Reconstructed intensity', opt.Wavefront.to_numpy(scale) * recon_wf.intensity[recon_wf.roi][batch_idx][plane_idx], iter, dataformats='HW')
 
-    if show_holo == "both" or show_holo == "amp":
-        writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
-    if show_holo == "both" or show_holo == "phase":
-        writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
+        if show_holo == "both" or show_holo == "amp":
+            writer.add_image(f'{prefix}/Hologram amplitude', opt.Wavefront.to_numpy(holo.amplitude)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
+        if show_holo == "both" or show_holo == "phase":
+            writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
 
     loss = loss if loss is not None else context.loss_fn(recon_wf, target_amp, scale=scale)
 
@@ -81,10 +82,11 @@ def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_am
     prefix = 'Time multiplexing'
     for t in range(0, recon_wf_stack.batch):  # fixme redundant computation
         recon_wf = recon_wf_stack.time_average(t_end=t+1)
-        if context.write_all_planes:
-            writer.add_images(f'{prefix}/TA Intensity sequence', scale * np.expand_dims(recon_wf.intensity[recon_wf.roi][0], axis=1), t, dataformats='NCHW')
-        else:
-            writer.add_image(f'{prefix}/TA Intensity sequence', recon_wf.intensity[recon_wf.roi][0][0], t, dataformats='HW')
+        if context.write_images:
+            if context.write_all_planes:
+                writer.add_images(f'{prefix}/TA Intensity sequence', scale * np.expand_dims(recon_wf.intensity[recon_wf.roi][0], axis=1), t, dataformats='NCHW')
+            else:
+                writer.add_image(f'{prefix}/TA Intensity sequence', recon_wf.intensity[recon_wf.roi][0][0], t, dataformats='HW')
 
         writer.add_scalar(f'{prefix}/MSE', context.loss_fn(recon_wf, target_amp, scale=scale), t)
         writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)

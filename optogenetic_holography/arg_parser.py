@@ -63,6 +63,7 @@ class ArgParser():
                        choices=['implicit', 'explicit', 'none'])
 
         g.add_argument('--summary_freq', type=int, default=10, help='')
+        g.add_argument('--write_images', type=str2bool, nargs='?', default=False, help='Set to True to send images to TB')
         g.add_argument('--write_all_planes', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--write_holo', type=str, default='none', help='')
         g.add_argument('--write_with_scale', type=str2bool, nargs='?', default=True, help='Scale images and metrics to best match target when writing summary')
