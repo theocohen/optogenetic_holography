@@ -102,7 +102,7 @@ def write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, context,
 
 
 def write_metrics_to_csv(dir, method_name, modulation, accuracy, loss):
-    file_path = dir + "/metrics.csv"
+    file_path = dir + "/metrics.txt"
     df = pd.DataFrame({"method": method_name, "mod": modulation, "acc": accuracy, "loss": loss})
     if not os.path.isfile(file_path):
         df.to_csv(file_path, index=False)
