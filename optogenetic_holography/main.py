@@ -98,7 +98,7 @@ def main():
 
     loss = loss_fn(recon_wf, target_amp, scale=scale)
     acc = acc_fn(recon_wf, target_amp, scale=scale)
-    logging.info(f"Eval for [scaled recon wf]: Loss {loss:.4f}, Accuracy {acc:.4f}\n")
+    logging.info(f"Eval for [scaled recon wf]: Loss {loss.item():.4f}, Accuracy {acc.item():.4f}\n")
 
     write_summary(writer, holo_wf, recon_wf, target_amp, param_groups['method_params'].iterations, param_groups['method_params'], scale=scale)
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask, scale=scale)
@@ -126,7 +126,7 @@ def main():
 
         loss = loss_fn(before_bin_recon_wf, target_amp, scale=scale)
         acc = acc_fn(before_bin_recon_wf, target_amp, scale=scale)
-        logging.info(f"Eval for [before bin scaled recon wf]: Loss {loss:.4f}, Accuracy {acc:.4f}\n")
+        logging.info(f"Eval for [before bin scaled recon wf]: Loss {loss.item():.4f}, Accuracy {acc.item():.4f}\n")
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(end_time - start_time))}\n")
 
