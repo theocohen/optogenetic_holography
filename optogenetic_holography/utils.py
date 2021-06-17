@@ -91,6 +91,7 @@ def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_am
         writer.add_scalar(f'{prefix}/MSE', context.loss_fn(recon_wf, target_amp, scale=scale), t)
         writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
         writer.add_scalar(f'{prefix}/PSNR', psnr(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
+        del recon_wf
 
 
 def write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, context, method_name, scale=1, modulation="final"):

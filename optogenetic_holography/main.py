@@ -94,6 +94,7 @@ def main():
     if args.plot_ta_batch in ('final', 'both'):
         recon_wf_stack.plot(summary_dir + '/batch/', param_groups['plot_params'], type='intensity', title='recon_batch', mask=mask, scale=scale)
     recon_wf = recon_wf_stack.time_average()
+    del recon_wf_stack
     #assert scale == scale_fn(recon_wf, target_amp, plot_title='recon') # should be the same
 
     loss = loss_fn(recon_wf, target_amp, scale=scale)
@@ -102,6 +103,7 @@ def main():
 
     write_summary(writer, holo_wf, recon_wf, target_amp, param_groups['method_params'].iterations, param_groups['method_params'], scale=scale)
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask, scale=scale)
+    del recon_wf
 
     if args.plot_before_bin and before_bin_metadata is not None:
         holo_type = 'phase' if 'phase' in args.method else 'intensity'
@@ -119,6 +121,7 @@ def main():
                                 title='before_bin-recon_batch', mask=mask, scale=scale)
 
         before_bin_recon_wf = before_bin_recon_wf_stack.time_average()
+        del before_bin_recon_wf_stack
 
         scale = scale_fn(before_bin_recon_wf, target_amp, plot_title='before_bin_recon', init_scale=scale)  # uncomment if want to recompute scale
         logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for before bin recon wf")
@@ -126,6 +129,7 @@ def main():
 
         loss = loss_fn(before_bin_recon_wf, target_amp, scale=scale)
         acc = acc_fn(before_bin_recon_wf, target_amp, scale=scale)
+        del before_bin_recon_wf
         logging.info(f"Eval for [before bin scaled recon wf]: Loss {loss.item():.4f}, Accuracy {acc.item():.4f}\n")
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(end_time - start_time))}\n")
