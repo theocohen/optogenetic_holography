@@ -10,8 +10,8 @@ import numpy as np
 import torch
 
 from piq import psnr, ssim
-from torch.nn.functional import mse_loss
 from torch.utils.tensorboard import SummaryWriter
+import pandas as pd
 
 from optogenetic_holography.optics import optics_backend as opt
 
@@ -30,13 +30,10 @@ def config_logger(summary_dir, run_dir):
 
     logging.setLogRecordFactory(record_factory)
 
+
 def mkdir(path):
-    if os.path.exists(path):
-        logging.info(f"Deleting summaries at {path}")
-        for f in os.listdir(path):
-            os.remove(os.path.join(path, f))
-        os.removedirs(path)
-    os.makedirs(path)
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 
 def load_mask(mask_path, device):
@@ -89,7 +86,8 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, 
     if lr: writer.add_scalar(f'{prefix}/lr', lr, iter)
 
 
-def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context, scale):
+def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_amp, context, scale=1):
+    # time averaged metrics
     prefix = 'Time multiplexing'
     for t in range(0, recon_wf_stack.batch):  # fixme redundant computation
         recon_wf = recon_wf_stack.time_average(t_end=t+1)
@@ -101,3 +99,20 @@ def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_am
         writer.add_scalar(f'{prefix}/MSE', context.loss_fn(recon_wf, target_amp, scale=scale), t)
         writer.add_scalar(f'{prefix}/SSIM', ssim(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
         writer.add_scalar(f'{prefix}/PSNR', psnr(recon_wf.normalised_amplitude[recon_wf.roi], target_amp[recon_wf.roi]), t)
+
+
+def write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, context, method_name, scale=1, modulation="final"):
+    # fixme assumes same scale for all batch
+    # sequential metrics
+    loss_bach = opt.Wavefront.to_numpy(context.loss_fn(recon_wf_stack, target_amp, scale=scale, force_batch_reduct='none'))
+    acc_batch = opt.Wavefront.to_numpy(context.acc_fn(recon_wf_stack, target_amp, scale=scale, force_batch_reduct='none'))
+    write_metrics_to_csv(summary_dir, method_name, modulation, acc_batch, loss_bach)
+
+
+def write_metrics_to_csv(dir, method_name, modulation, accuracy, loss):
+    file_path = dir + "/metrics.csv"
+    df = pd.DataFrame({"method": method_name, "mod": modulation, "acc": accuracy, "loss": loss})
+    if not os.path.isfile(file_path):
+        df.to_csv(file_path, index=False)
+    else:
+        df.to_csv(file_path, mode='a', header=False, index=False)

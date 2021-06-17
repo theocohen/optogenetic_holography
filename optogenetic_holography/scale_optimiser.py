@@ -27,7 +27,7 @@ class ScaleOptimiser(torch.nn.Module):
         for iter in range(self.iterations):
             optimizer.zero_grad()
             scale = torch.exp(log_scale)
-            loss = self.criterion(recon_wf_copy, target_amp, force_average=True, scale=scale)
+            loss = self.criterion(recon_wf_copy, target_amp, force_batch_reduct='avg', scale=scale)
             loss.backward()
             optimizer.step()
             scheduler.step(loss)

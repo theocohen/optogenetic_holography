@@ -79,6 +79,7 @@ class ArgParser():
         g.add_argument('--plot_before_bin', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--plot_colorbar', type=str2bool, nargs='?', default=False, help='')
         g.add_argument('--plot_target', type=str2bool, nargs='?', default=False, help='')
+        g.add_argument('--plot_ta_batch', type=str, default='none', help='')
 
     def _adjust_units(self, args):
         args.wavelength = args.wavelength * opt.nm

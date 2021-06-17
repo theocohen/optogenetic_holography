@@ -14,7 +14,7 @@ import torch
 from optogenetic_holography.arg_parser import ArgParser
 from optogenetic_holography.optics import optics_backend as opt
 from optogenetic_holography.utils import init_writer, write_time_average_sequence, config_logger, load_mask, \
-    write_summary
+    write_summary, write_batch_summary_to_csv
 import optogenetic_holography.algorithms as algorithms
 
 
@@ -59,11 +59,6 @@ def main():
     if device.type == 'cuda':
         print(torch.cuda.get_device_properties(device))
 
-    """
-    def vectorised_loss(input, target):
-        return torch.nn.MSELoss(reduction='none')(input, target).mean(dim=(1, 2, 3), keepdim=False)
-    loss_fn = torch.nn.MSELoss() if args.average_batch_grads else vectorised_loss
-    """
     mask = load_mask(args.target_mask_path, device)
     loss_fn = MSE(mask=mask, average_batch_grads=args.average_batch_grads).to(device)
     acc_fn = Accuracy(mask=mask).to(device)
@@ -83,7 +78,7 @@ def main():
     start_time = time.time()
 
     holo_wf, before_bin_metadata = generator(start_wf, target_amp, propagator, writer, param_groups['method_params'])
-
+    assert (holo_wf.phase == start_wf.phase).all() # prevent phase modulation
     end_time = time.time()
 
     holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo', is_holo=True)
@@ -92,8 +87,10 @@ def main():
 
     scale = scale_fn(recon_wf_stack, target_amp, plot_title='recon', init_scale=before_bin_metadata['last_scale'])
     logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for recon wf [stack]\n")
-
+    write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, param_groups['method_params'], args.method, scale=scale)
     write_time_average_sequence(writer, recon_wf_stack, target_amp, param_groups['method_params'], scale=scale)
+    if args.plot_ta_batch in ('final', 'both'):
+        recon_wf_stack.plot(summary_dir + '/batch/', param_groups['plot_params'], type='intensity', title='recon_batch', mask=mask, scale=scale)
     recon_wf = recon_wf_stack.time_average()
     #assert scale == scale_fn(recon_wf, target_amp, plot_title='recon') # should be the same
 
@@ -112,9 +109,15 @@ def main():
             before_bin_recon_wf_stack = propagator.forward(before_bin_metadata['holo'])
         else:
             before_bin_recon_wf_stack = before_bin_metadata['recon_wf_stack']
+        scale = before_bin_metadata['last_scale']
+        write_batch_summary_to_csv(summary_dir, before_bin_recon_wf_stack, target_amp, param_groups['method_params'],
+                                   args.method, scale=scale, modulation="before bin")
+        if args.plot_ta_batch in ('before_bin', 'both'):
+            recon_wf_stack.plot(summary_dir + '/batch/', param_groups['plot_params'], type='intensity',
+                                title='before_bin-recon_batch', mask=mask, scale=scale)
+
         before_bin_recon_wf = before_bin_recon_wf_stack.time_average()
 
-        scale = before_bin_metadata['last_scale']
         scale = scale_fn(before_bin_recon_wf, target_amp, plot_title='before_bin_recon', init_scale=scale)  # uncomment if want to recompute scale
         logging.info(f"Optimal scale {scale.squeeze().cpu().numpy():.5f} for before bin recon wf")
         before_bin_recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='before_bin-recon', mask=mask, scale=scale)

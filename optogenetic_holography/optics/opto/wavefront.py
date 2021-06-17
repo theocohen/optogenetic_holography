@@ -1,5 +1,7 @@
 import logging
 import glob
+import os
+
 import cv2
 import torch
 import matplotlib.pyplot as plt
@@ -130,6 +132,8 @@ class Wavefront:
         return torch.allclose(self.u, other_field.u, atol=atol)
 
     def plot(self, dir, options, type='intensity', title='', mask=None, scale=1, is_holo=False, force_colorbar=False):
+        if not os.path.exists(dir):
+            os.makedirs(dir)
         if type == 'intensity':
             img = scale * self.amplitude ** 2
             if options.normalise_plot and not is_holo:
@@ -165,10 +169,11 @@ class Wavefront:
                 plt.close()
 
     def time_average(self, t_start=0, t_end=None):
-        ta_wf = self.copy()
-        ta_wf.batch = 1
+        # time average intensity (not amplitude!) (and discard phase)
+        # fixme numerical precision
+        ta_wf = self.copy(batch=1)
         t_end = self.batch if t_end is None else t_end
-        ta_wf.u = self.u[t_start:t_end, :, :].mean(dim=0, keepdim=True)
+        ta_wf.u = torch.sqrt((self.amplitude[t_start:t_end, :, :] ** 2).mean(dim=0, keepdim=True)).type('torch.ComplexFloatTensor')
         return ta_wf
 
     def copy(self, copy_u=False, batch=None, depth=None, detach=False):
