@@ -91,7 +91,8 @@ def write_time_average_sequence(writer, recon_wf_stack: opt.Wavefront, target_am
 
         loss = context.loss_fn(recon_wf, target_amp, scale=scale)
         acc = context.acc_fn(recon_wf, target_amp, scale=scale)
-        write_metrics_to_csv(writer.get_logdir(), "ta_sequence", context.method,  modulation, acc, loss)
+        metrics = {"batch_size": t+1, "acc": acc, "loss": loss}
+        write_metrics_to_csv(writer.get_logdir(), "ta_sequence", context.method,  modulation, metrics)
 
         writer.add_scalar(f'{prefix}/MSE', loss, t)
         writer.add_scalar(f'{prefix}/Acc', acc, t)
@@ -105,14 +106,15 @@ def write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, context,
     # sequential metrics
     loss_bach = opt.Wavefront.to_numpy(context.loss_fn(recon_wf_stack, target_amp, scale=scale, force_batch_reduct='none'))
     acc_batch = opt.Wavefront.to_numpy(context.acc_fn(recon_wf_stack, target_amp, scale=scale, force_batch_reduct='none'))
-    write_metrics_to_csv(summary_dir, "batch", method_name, modulation, acc_batch, loss_bach)
+
+    metrics = {"acc": acc_batch, "loss": loss_bach}
+    write_metrics_to_csv(summary_dir, "batch", method_name, modulation, metrics)
 
 
-def write_metrics_to_csv(dir, name, method_name, modulation, accuracy, loss):
+def write_metrics_to_csv(dir, name, method_name, modulation, metrics):
     file_path = f"{dir}/{name}-metrics.txt"
-    accuracy = np.array([accuracy]) if not isinstance(accuracy, np.ndarray) else accuracy
-    loss = np.array([loss]) if not isinstance(loss, np.ndarray) else loss
-    df = pd.DataFrame({"method": method_name, "modulation": modulation, "acc": accuracy, "loss": loss})
+    metrics = {key: (np.array([val]) if not isinstance(val, np.ndarray) else val) for key,val in metrics.items()}
+    df = pd.DataFrame({"method": method_name, "modulation": modulation, **metrics})
     if not os.path.isfile(file_path):
         df.to_csv(file_path, index=False)
     else:
