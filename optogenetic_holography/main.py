@@ -2,7 +2,7 @@ import time
 import matplotlib
 from metrics import MSE, Accuracy
 from scale_optimiser import ScaleOptimiser
-from utils import assert_phase_unchanged
+from utils import assert_phase_unchanged, write_metrics_to_csv
 
 matplotlib.use('agg')
 import os
@@ -100,6 +100,7 @@ def main():
     loss = loss_fn(recon_wf, target_amp, scale=scale)
     acc = acc_fn(recon_wf, target_amp, scale=scale)
     logging.info(f"Eval for [scaled recon wf]: Loss {loss.item():.4f}, Accuracy {acc.item():.4f}\n")
+    write_metrics_to_csv(summary_dir, "ta", args.method, "bfinal", acc, loss)
 
     write_summary(writer, holo_wf, recon_wf, target_amp, param_groups['method_params'].iterations, param_groups['method_params'], scale=scale)
     recon_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='recon', mask=mask, scale=scale)
@@ -131,6 +132,7 @@ def main():
         acc = acc_fn(before_bin_recon_wf, target_amp, scale=scale)
         del before_bin_recon_wf
         logging.info(f"Eval for [before bin scaled recon wf]: Loss {loss.item():.4f}, Accuracy {acc.item():.4f}\n")
+        write_metrics_to_csv(summary_dir, "ta", args.method, "before bin", acc, loss)
 
     logging.info(f"Finished in {time.strftime('%Hh%Mm%Ss', time.gmtime(end_time - start_time))}\n")
 

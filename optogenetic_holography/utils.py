@@ -66,11 +66,11 @@ def write_summary(writer, holo, recon_wf, target_amp, iter, context, loss=None, 
         if show_holo == "both" or show_holo == "phase":
             writer.add_image(f'{prefix}/Hologram phase', opt.Wavefront.to_numpy(holo.phase)[recon_wf.roi][batch_idx][0], iter, dataformats='HW')
 
-    loss = loss if loss is not None else context.loss_fn(recon_wf, target_amp, scale=scale)
+    loss = loss if loss is not None else context.loss_fn(recon_wf, target_amp, scale=scale, force_batch_reduct='avg')
 
     writer.add_scalar(f'{prefix}/Scale', scale, iter)
     writer.add_scalar(f'{prefix}/Loss', loss, iter)
-    writer.add_scalar(f"{prefix}/Acc", context.acc_fn(recon_wf, target_amp, scale), iter)
+    writer.add_scalar(f"{prefix}/Acc", context.acc_fn(recon_wf, target_amp, scale, force_batch_reduct='avg'), iter)
     writer.add_scalar(f'{prefix}/ssim', ssim(recon_wf.normalised_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)  # scaling to avoid error
     writer.add_scalar(f'{prefix}/psnr', psnr(recon_wf.normalised_amplitude[recon_wf.roi][batch_idx], target_amp[recon_wf.roi][0]), iter)
 
@@ -100,11 +100,11 @@ def write_batch_summary_to_csv(summary_dir, recon_wf_stack, target_amp, context,
     # sequential metrics
     loss_bach = opt.Wavefront.to_numpy(context.loss_fn(recon_wf_stack, target_amp, scale=scale, force_batch_reduct='none'))
     acc_batch = opt.Wavefront.to_numpy(context.acc_fn(recon_wf_stack, target_amp, scale=scale, force_batch_reduct='none'))
-    write_metrics_to_csv(summary_dir, method_name, modulation, acc_batch, loss_bach)
+    write_metrics_to_csv(summary_dir, "batch", method_name, modulation, acc_batch, loss_bach)
 
 
-def write_metrics_to_csv(dir, method_name, modulation, accuracy, loss):
-    file_path = dir + "/metrics.txt"
+def write_metrics_to_csv(dir, name, method_name, modulation, accuracy, loss):
+    file_path = f"{dir}/{name}-metrics.txt"
     df = pd.DataFrame({"method": method_name, "modulation": modulation, "acc": accuracy, "loss": loss})
     if not os.path.isfile(file_path):
         df.to_csv(file_path, index=False)
