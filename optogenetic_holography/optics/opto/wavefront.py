@@ -146,8 +146,10 @@ class Wavefront:
                 # normalising by total intensity
                 img /= img.sum()
             img = Wavefront.to_numpy(img)
+            cmap = 'gray' if is_holo else options.cmap
         elif type == 'phase':
             img = Wavefront.to_numpy(self.phase)
+            cmap = 'twilight'
         if options.crop_roi and self.roi is not None:
             img = img[self.roi]
             if options.masked_plot and mask is not None:
@@ -165,7 +167,7 @@ class Wavefront:
                 fig = plt.figure(figsize=figsize)
                 ax = fig.add_axes([0, 0, 1, 1])
                 ax.axis('off')
-                im = ax.imshow(img[t][d], cmap=('gray' if is_holo else options.cmap))
+                im = ax.imshow(img[t][d], cmap=cmap)
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
                 if force_colorbar or (options.plot_colorbar and not is_holo):
                     divider = make_axes_locatable(ax)
