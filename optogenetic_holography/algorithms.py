@@ -8,7 +8,8 @@ from optogenetic_holography.utils import write_summary
 
 
 def bin_amp_phase_mgsa(start_wf, target_amp, propagator, writer, context):
-    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amp.shape[1])  #  optimize hologram stack
+    #holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amp.shape[1])  #  optimize hologram stack
+    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=1)  #  global GS
     #holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=1)  # in-loop
     if context.random_holo_init:
         holo_wf.set_random_phase()
@@ -23,22 +24,25 @@ def bin_amp_phase_mgsa(start_wf, target_amp, propagator, writer, context):
 
         recon_wf.amplitude = target_amp
         #recon_wf.set_amplitude(target_amp, mask=context.loss_fn.mask)
+        # holo_wf.phase = propagator.backward(recon_wf).phase  # holo stack
         #holo_wf.phase = propagator.backward(recon_wf).phase.mean(dim=1, keepdim=True)  # in-loop mean
-        holo_wf.phase = propagator.backward(recon_wf).phase  # holo stack
+        holo_wf.phase = propagator.backward(recon_wf).superpose_phases()  # in-loop superposition
         #holo_wf.amplitude = from_phase_to_bin_amp(propagator.backward(recon_wf).phase)  binarisation in-loop
 
     #binarization
     before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'last_scale': scale}
 
-    holo_wf.depth = 1
-    holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase.mean(dim=1, keepdim=True)), start_wf.phase)  # FIXME 3D in loop
+    #holo_wf.depth = 1
+    #holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase.mean(dim=1, keepdim=True)), start_wf.phase)  # average
+    holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)  # already averaged
     #holo_wf.polar_to_rect(from_phase_to_bin_amp(holo_wf.phase), start_wf.phase)
 
     return holo_wf, before_bin_metadata
 
 
 def bin_amp_amp_mgsa(start_wf, target_amp, propagator, writer, context):
-    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amp.shape[1])
+    #holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=target_amp.shape[1])
+    holo_wf = start_wf.copy(copy_u=True, batch=context.ta_batch, depth=1) # global 3D
     if context.random_holo_init:
         holo_wf.set_random_amplitude()
 
@@ -53,13 +57,15 @@ def bin_amp_amp_mgsa(start_wf, target_amp, propagator, writer, context):
         recon_wf.amplitude = target_amp
         #recon_wf.set_amplitude(target_amp, mask=context.loss_fn.mask)
 
-        holo_wf.amplitude = propagator.backward(recon_wf).amplitude
+        #holo_wf.amplitude = propagator.backward(recon_wf).amplitude
+        holo_wf.amplitude = propagator.backward(recon_wf).superpose_amps()
         #holo_wf.amplitude = from_amp_to_bin_amp(propagator.backward(recon_wf), method=context.bin_amp_mod)  binarisation in-loop
 
     before_bin_metadata = {'holo': holo_wf.copy(copy_u=True), 'last_scale': scale}
 
-    holo_wf.depth = 1
-    holo_wf.polar_to_rect(from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=1, keepdim=True), method=context.bin_amp_mod), start_wf.phase) # FIXME 3D in loop
+    #holo_wf.depth = 1
+    #holo_wf.polar_to_rect(from_amp_to_bin_amp(holo_wf.amplitude.mean(dim=1, keepdim=True), method=context.bin_amp_mod), start_wf.phase) # FIXME 3D in loop
+    holo_wf.polar_to_rect(from_amp_to_bin_amp(holo_wf.amplitude, method=context.bin_amp_mod), start_wf.phase) # global mutliplane
 
     return holo_wf, before_bin_metadata
 

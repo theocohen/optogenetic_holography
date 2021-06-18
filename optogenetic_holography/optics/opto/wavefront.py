@@ -128,6 +128,12 @@ class Wavefront:
         """from neural holo"""
         self.u = torch.complex(amp * torch.cos(phase), amp * torch.sin(phase)).broadcast_to(self.shape).to(self.device)
 
+    def superpose_phases(self):
+        return self.u.sum(dim=1, keepdim=True).angle()
+
+    def superpose_amps(self):
+        return self.u.sum(dim=1, keepdim=True).abs()
+
     def assert_equal(self, other_field, atol=1e-6):
         return torch.allclose(self.u, other_field.u, atol=atol)
 
