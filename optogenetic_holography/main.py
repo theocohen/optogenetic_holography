@@ -81,6 +81,7 @@ def main():
     holo_wf, before_bin_metadata = generator(start_wf, target_amp, propagator, writer, param_groups['method_params'])
 
     assert_phase_unchanged(holo_wf, start_wf)
+    #assert_binary_amplitude(holo_wf)
     end_time = time.time()
 
     holo_wf.plot(summary_dir, param_groups['plot_params'], type='intensity', title='holo', is_holo=True)

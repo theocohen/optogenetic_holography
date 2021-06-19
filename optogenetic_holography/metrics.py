@@ -35,7 +35,7 @@ class Accuracy(torch.nn.Module):
             scale = torch.tensor(1).reshape(recon_wf.batch, 1, 1, 1)
         target_int = torch.square(target_amp[recon_wf.roi])
         recon_int = scale * torch.square(recon_wf.amplitude[recon_wf.roi])
-        if self.mask:
+        if self.mask is not None:
             recon_int *= self.mask
 
         dim = (1, 2, 3) if force_batch_reduct == 'none' else (0, 1, 2, 3)

@@ -125,3 +125,9 @@ def assert_phase_unchanged(holo_wf, start_wf, threshold=1e-6):
     # prevent phase modulation
     max_phase_shift = (holo_wf.phase[holo_wf.amplitude != 0] - start_wf.phase.broadcast_to(holo_wf.shape)[holo_wf.amplitude != 0]).max()
     assert max_phase_shift < threshold, f"ERROR illegal phase modulation happened. Maximum phase shift {max_phase_shift}"
+
+"""
+def assert_binary_amplitude(holo_wf):
+    amp_values = torch.unique(holo_wf.amplitude)
+    assert len(amp_values) == 2 and torch.unique(holo_wf.amplitude) == torch.tensor([0, 1]), f"ERROR illegal non binary amplitude in produced hologram with values {amp_values}"
+"""
