@@ -1,0 +1,21 @@
+method = bin_amp_phase_mgsa
+
+target_path = ./input/digits/*.jpg
+output_path = ./../drive/MyDrive/output/
+
+padding = [50, 700, 50, 700]
+optimize_resolution = False
+
+start_wf_phases = flat
+propagation_model = FourierFresnel
+propagation_dist = [0, 5]
+ta_batch = 1
+iterations = 300
+random_holo_init = True
+
+summary_freq = 30
+threshold_foreground = False
+remove_airy_disk = True
+normalise_plot = True
+crop_roi = False
+write_all_planes = True

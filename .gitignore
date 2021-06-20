@@ -1,0 +1,7 @@
+/.idea/
+/venv/
+/tests/output/summaries/*
+/input/
+/input/digits/
+/output/
+/input/

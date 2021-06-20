@@ -1,0 +1,18 @@
+target_path = ./input/digits/*.jpg
+padding = 0
+optimize_resolution = False
+
+start_wf_phases = random
+propagation_model = FourierFresnel
+propagation_dist = [-2, 2]
+
+method = bin_amp_amp_sig_sgd
+ta_batch = 10
+iterations = 50
+lr = 0.1
+random_holo_init = True
+bin_sharpness = 1
+bin_threshold = 0
+
+summary_freq = 5
+threshold_foreground = False
